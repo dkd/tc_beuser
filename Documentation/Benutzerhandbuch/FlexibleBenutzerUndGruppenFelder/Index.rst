@@ -15,17 +15,25 @@
 .. role::   php(code)
 
 
-Flexible Benutzer und Gruppen Felder
+Flexible Benutzer- und Gruppenfelder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Über Ausschlussfelder lassen sich die Felder bestimmen, welche über
-das SubModul „Benutzer-Admin“ und „Gruppen-Admin“ editiert werden
-können.
+Über die Gruppeneinstellungen des aktuellen Users lassen sich die
+Felder bestimmen, welche über die Module „Benutzer-Admin“ und
+„Gruppen-Admin“ editiert werden können.
 
-Um z.B. die Standardfelder (disable,username,password,usergroup,realName,
-email,lang,name,first_name,last_name) beim  „Benutzer-Admin“ um DB-Mount
-und File-Mount zu erweitern müssen die Standardfelder sowie db_mountpoints
-und file_mountpoints in den Ausschlussfeldern ausgewählt werden.
+Die Extension stellt beim Bearbeiten einer Backend-Benutzergruppe unter
+dem Feld "Erlaubte Ausschlussfelder" Einstellungsmöglichkeiten für
+"Backend-Benutzer" und "Backend-Benutzergruppe" zur Verfügung. Die hier
+ausgewählten Felder stehen den Benutzern der Gruppe als Felder in den
+"TC Tools"-Modulen zur Verfügung.
+
+Um z.B. die Standardfelder (Inaktiv, Benutzername, Passwort, Gruppe,
+Name, E-Mail, Standardsprache) beim „Benutzer-Admin“ um
+Datenbankfreigaben (db_mountpoints) und Dateifreigaben (file_mountpoints)
+zu erweitern, müssen die Standardfelder, sowie die Felder
+Datenbankfreigaben und Dateifreigaben unter dem Punkt
+"Erlaubte Ausschlussfelder" für Backend-Benutzer ausgewählt werden.
 
 |img-3|
 
