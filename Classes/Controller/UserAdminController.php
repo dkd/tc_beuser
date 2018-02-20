@@ -557,7 +557,37 @@ class UserAdminController extends AbstractModuleController
         $content = '';
 
         // the default field to show
-        $showColumn = 'disable,username,password,usergroup,realName,email,lang,name,first_name,last_name';
+        $defaultShowColumnArray = [
+            'disable',
+            'username',
+            'password',
+            'usergroup',
+            'realName',
+            'email',
+            'lang',
+            'name',
+            'first_name',
+            'last_name',
+        ];
+        $showColumnArray = [];
+
+        if (!empty($this->getBackendUser()->groupData['non_exclude_fields'])) {
+            $nonExcludeFields = GeneralUtility::trimExplode(',', $this->getBackendUser()->groupData['non_exclude_fields'], true);
+            foreach ($nonExcludeFields as $field) {
+                if (strpos($field, 'be_users:') === 0) {
+                    list($_, $field) = explode(':', $field, 2);
+                    $showColumnArray[] = $field;
+                }
+            }
+        }
+        if (!empty($showColumnArray)) {
+            $showColumn = implode(',', array_merge(
+                array_intersect($defaultShowColumnArray, $showColumnArray),
+                array_diff($showColumnArray, $defaultShowColumnArray)
+            ));
+        } else {
+            $showColumn = implode(',', $defaultShowColumnArray);
+        }
 
         // get hideColumnGroup from TS and remove it from the showColumn
         if ($this->getBackendUser()->userTS['tc_beuser.']['hideColumnGroup']) {

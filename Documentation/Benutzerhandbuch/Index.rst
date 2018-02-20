@@ -27,6 +27,7 @@ Benutzerhandbuch
    AlphabetischeAuflistungDerBackend-user/Index
    SortierungNachKriterien/Index
    FilterungDeaktivierterBackend-user/Index
+   FlexibleBenutzerUndGruppenFelder/Index
    SucheNachBackend-user/Index
    NeuenBenutzerAnlegen/Index
    FrontendBenutzerImportieren/Index
