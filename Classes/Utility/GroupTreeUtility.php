@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Utility;
+namespace Dkd\TcBeuser\Utility;
 
 /***************************************************************
 *  Copyright notice
@@ -40,13 +40,12 @@ class GroupTreeUtility extends AbstractTreeView
     public $defaultList = 'uid,title';
 
     /**
-     * Init function
-     * REMEMBER to feed a $clause which will filter out non-readable pages!
+     * Initialize the tree class. Needs to be overwritten
      *
-     * @param string $clause Part of where query which will filter out non-readable pages.
-     * @return void
+     * @param string $clause Record WHERE clause
+     * @param string $orderByFields Record ORDER BY field
      */
-    public function init($clause = '')
+    public function init($clause = '', $orderByFields = '')
     {
         parent::init(' AND deleted=0 '.$clause, 'title');
 
@@ -97,7 +96,7 @@ class GroupTreeUtility extends AbstractTreeView
     public function getTree($uid, $depth = 999, $depthData = '')
     {
         // Buffer for id hierarchy is reset:
-        $this->buffer_idH = array();
+        $this->buffer_idH = [];
         // Init vars
         $depth = (int)$depth;
         $HTML = '';
@@ -105,7 +104,7 @@ class GroupTreeUtility extends AbstractTreeView
         $res = $this->getDataInit($uid);
         $c = $this->getDataCount($res);
         $crazyRecursionLimiter = 999;
-        $idH = array();
+        $idH = [];
         // Traverse the records:
         while ($crazyRecursionLimiter > 0 && ($row = $this->getDataNext($res))) {
             $pageUid = ($this->table === 'pages') ? $row['uid'] : $row['pid'];
@@ -121,7 +120,7 @@ class GroupTreeUtility extends AbstractTreeView
                 throw new \RuntimeException('Endless recursion detected: TYPO3 has detected an error in the database. Please fix it manually (e.g. using phpMyAdmin) and change the UID of ' . $this->table . ':0 to a new value. See http://forge.typo3.org/issues/16150 to get more information about a possible cause.', 1294586383);
             }
             // Reserve space.
-            $this->tree[] = array();
+            $this->tree[] = [];
             end($this->tree);
             // Get the key for this space
             $treeKey = key($this->tree);
@@ -165,7 +164,7 @@ class GroupTreeUtility extends AbstractTreeView
                 $HTML = $treeIcon . $this->PMicon($row, $a, $c, $nextCount, $isOpen) . $this->wrapStop($this->getIcon($row), $row);
             }
             // Finally, add the row/HTML content to the ->tree array in the reserved key.
-            $this->tree[$treeKey] = array(
+            $this->tree[$treeKey] = [
                 'row' => $row,
                 'HTML' => $HTML,
                 'invertedDepth' => $depth,
@@ -174,14 +173,13 @@ class GroupTreeUtility extends AbstractTreeView
                 'hasSub' => $nextCount && $hasSub,
                 'isFirst' => $a === 1,
                 'isLast' => $a === $c,
-            );
+            ];
         }
 
         $this->getDataFree($res);
         $this->buffer_idH = $idH;
         return $c;
     }
-
 
     /**
      * Wrap the plus/minus icon in a link

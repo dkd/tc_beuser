@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Module;
+namespace Dkd\TcBeuser\Module;
 
 /**
  * Created by PhpStorm.
@@ -25,11 +25,10 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  * This class shares methods, which are used by other module classes.
  *
  * @author Ivan Kartolo <ivan.kartolo@dkd.de>
- * @package dkd\TcBeuser\Controller
+ * @package Dkd\TcBeuser\Controller
  */
 abstract class AbstractModuleController extends BaseScriptClass
 {
-
     /**
      * Name of the module
      *
@@ -443,7 +442,7 @@ abstract class AbstractModuleController extends BaseScriptClass
                     $deleteButton = $buttonBar->makeLinkButton()
                         ->setHref('#')
                         ->setClasses('t3js-editform-delete-record')
-                        ->setTitle($lang->getLL('deleteItem'))
+                        ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.delete'))
                         ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
                             'actions-edit-delete',
                             Icon::SIZE_SMALL
@@ -552,7 +551,7 @@ abstract class AbstractModuleController extends BaseScriptClass
 						top.content.nav_frame.refresh_nav();
 					}
 				}
-				
+
 				function editRecords(table,idList,addParams,CBflag) {	//
 					window.location.href="' . BackendUtility::getModuleUrl('record_edit', array('returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI'))) . '&edit["+table+"]["+idList+"]=edit"+addParams;
 				}
@@ -576,8 +575,8 @@ abstract class AbstractModuleController extends BaseScriptClass
 					return list ? list : idList;
 				}
 				function deleteRecord(table,id,url) {	//
-                    window.location.href = ' . GeneralUtility::quoteJSvalue(BackendUtility::getModuleUrl($this->moduleName) . '&cmd[') . '+table+"]["+id+"][delete]=1&redirect="+escape(url)+"&vC=' . $this->getBackendUser()->veriCode() . '&prErr=1&uPT=1&SET[function]=action";
-                }
+					window.location.href = ' . GeneralUtility::quoteJSvalue(BackendUtility::getModuleUrl($this->moduleName) . '&cmd[') . '+table+"]["+id+"][delete]=1&redirect="+escape(url)+"&vC=' . $this->getBackendUser()->veriCode() . '&prErr=1&uPT=1&SET[function]=action";
+				}
 
 				if (top.fsMod) top.fsMod.recentIds["tcTools"] = ' . (int)$this->id . ';
 			'

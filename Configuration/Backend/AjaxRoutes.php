@@ -7,6 +7,6 @@ return [
     // Dispatch the permissions actions
     'tcbeuser_access_permissions' => [
         'path' => '/tcbeusers/access/permissions',
-        'target' => \dkd\TcBeuser\Controller\PermissionAjaxController::class . '::dispatch'
+        'target' => \Dkd\TcBeuser\Controller\PermissionAjaxController::class . '::dispatch'
     ]
 ];

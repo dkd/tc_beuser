@@ -10,38 +10,31 @@
  * writing. "version" and "dependencies" must not be touched!
  ***************************************************************/
 
-$EM_CONF[$_EXTKEY] = array(
+$EM_CONF[$_EXTKEY] = [
     'title' => 'TC BE User Admin',
     'description' => 'A collection of modules for administer BE users more comfortably',
     'category' => 'module',
-    'shy' => 0,
-    'version' => '3.0.2',
-    'dependencies' => '',
-    'conflicts' => '',
-    'priority' => '',
-    'loadOrder' => '',
-    'module' => 'mod1,mod2,mod3,mod4,mod5,mod6',
+    'version' => '4.0.0-dev',
     'state' => 'stable',
     'uploadfolder' => 0,
     'createDirs' => '',
-    'modify_tables' => '',
-    'clearcacheonload' => 0,
-    'lockType' => '',
+    'clearCacheOnLoad' => 0,
     'author' => 'dkd Internet Service GmbH',
     'author_email' => 'typo3@dkd.de',
     'author_company' => '',
-    'CGLcompliance' => '',
-    'CGLcompliance_note' => '',
-    'constraints' => array(
-        'depends' => array(
-            'typo3' => '7.6.0-7.6.99',
-        ),
-        'conflicts' => array(
-        ),
-        'suggests' => array(
-        ),
-    ),
-    '_md5_values_when_last_written' => '',
-    'suggests' => array(
-    ),
-);
+    'constraints' => [
+        'depends' => [
+            'php' => '7.0.0-7.1.99',
+            'typo3' => '8.7.0-8.7.99',
+        ],
+        'conflicts' => [
+        ],
+        'suggests' => [
+        ],
+    ],
+    'autoload' => [
+        'psr-4' => [
+            'Dkd\\TcBeuser\\' => 'Classes/'
+        ]
+    ]
+];

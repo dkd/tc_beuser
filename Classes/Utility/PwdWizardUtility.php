@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Utility;
+namespace Dkd\TcBeuser\Utility;
 
 /***************************************************************
 *  Copyright notice
@@ -39,7 +39,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class PwdWizardUtility
 {
-
     public $backPath = '../../../../typo3/';
 
     public function main($PA, $pObj)
@@ -49,7 +48,7 @@ class PwdWizardUtility
         // check if per User or PageTS enabled
         if ($this->getBackendUser()->userTS['tc_beuser.']['passwordWizard']) {
             $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
-            $output .= '<script src="' . ExtensionManagementUtility::extRelPath('tc_beuser') .
+            $output .= '<script src="../' . ExtensionManagementUtility::siteRelPath('tc_beuser') .
                 'Resources/Public/JavaScript/pwdgen.js" type="text/javascript"></script>';
             $onclick = 'pass = mkpass();' .
                 'document.'.$PA['formName'].'[\''.$PA['itemName'].'\'].value = pass;';

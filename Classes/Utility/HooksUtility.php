@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Utility;
+namespace Dkd\TcBeuser\Utility;
 
 /***************************************************************
 *  Copyright notice
@@ -26,6 +26,7 @@ namespace dkd\TcBeuser\Utility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 
 /**
  * methods for some hooks
@@ -35,7 +36,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class HooksUtility
 {
-
     public $columns;
 
     public function befuncPostProcessValue($params, $ref)
@@ -58,14 +58,42 @@ class HooksUtility
 
     /**
      * updating be_users
+     *
+     * @param array $incomingFieldArray
+     * @param string $table
+     * @param int $id
+     * @param DataHandler $tcemain
      */
     public function processDatamap_preProcessFieldArray($incomingFieldArray, $table, $id, $tcemain)
     {
         if ($table == 'be_groups') {
             //unset 'members' from TCA
-            $this->columns['members'] = $GLOBALS['TCA'][$table]['columns']['members'];
-            unset($GLOBALS['TCA'][$table]['columns']['members']);
+            $this->removeBackendUserColumnMembersFromTCA();
         }
+    }
+
+    /**
+     * Preprocess delete actions
+     *
+     * @param string $table
+     * @param int $id
+     * @param array $recordToDelete
+     * @param bool $recordWasDeleted
+     * @param DataHandler $dataHandler
+     */
+    public function processCmdmap_deleteAction($table, $id, $recordToDelete, $recordWasDeleted, DataHandler $dataHandler)
+    {
+        $this->removeBackendUserColumnMembersFromTCA();
+    }
+
+    /**
+     * Removes backend user dummy column "members"
+     * from TCA
+     */
+    protected function removeBackendUserColumnMembersFromTCA()
+    {
+        $this->columns['members'] = $GLOBALS['TCA']['be_groups']['columns']['members'];
+        unset($GLOBALS['TCA']['be_groups']['columns']['members']);
     }
 
     /**

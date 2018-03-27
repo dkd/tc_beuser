@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Controller;
+namespace Dkd\TcBeuser\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.

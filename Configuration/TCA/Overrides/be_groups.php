@@ -8,7 +8,7 @@ if (TYPO3_MODE == 'BE') {
     $GLOBALS['TCA']['be_groups']['ctrl']['adminOnly'] = 0;
 
     $GLOBALS['TCA']['be_groups']['columns']['subgroup']['config']['itemsProcFunc'] =
-        'dkd\\TcBeuser\\Utility\\TcBeuserUtility->getGroupsID';
+        \Dkd\TcBeuser\Utility\TcBeuserUtility::class . '->getGroupsID';
 }
 
 $tempCol = array(

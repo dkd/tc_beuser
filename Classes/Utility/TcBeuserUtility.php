@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Utility;
+namespace Dkd\TcBeuser\Utility;
 
 /***************************************************************
 *  Copyright notice
@@ -29,6 +29,8 @@ use TYPO3\CMS\Core\Database\DatabaseConnection;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
+use TYPO3\CMS\Core\Session\Backend\SessionBackendInterface;
+use TYPO3\CMS\Core\Session\SessionManager;
 
 /**
  * clas for module configuration handling
@@ -39,7 +41,6 @@ use TYPO3\CMS\Core\Utility\HttpUtility;
  */
 class TcBeuserUtility
 {
-
     public $config;
 
     public static function fakeAdmin()
@@ -298,7 +299,6 @@ class TcBeuserUtility
         return implode(',', $id);
     }
 
-
     /**
      * Switches to a given user (SU-mode) and then redirects to the start page
      * of the backend to refresh the navigation etc.
@@ -310,21 +310,16 @@ class TcBeuserUtility
     {
         $targetUser = BackendUtility::getRecord('be_users', $switchUser);
         if (is_array($targetUser)) {
-            $updateData['ses_userid'] = (int)$targetUser['uid'];
-            $updateData['ses_backuserid'] = intval(self::getBackendUser()->user['uid']);
-
-            // Set backend user listing module as starting module for switchback
             self::getBackendUser()->uc['startModuleOnFirstLogin'] = 'tctools_UserAdmin';
             self::getBackendUser()->writeUC();
 
-            $whereClause = 'ses_id=' . self::getDatabaseConnection()->fullQuoteStr(self::getBackendUser()->id, 'be_sessions');
-            $whereClause .= ' AND ses_name=' . self::getDatabaseConnection()->fullQuoteStr(BackendUserAuthentication::getCookieName(), 'be_sessions');
-            $whereClause .= ' AND ses_userid=' . (int)self::getBackendUser()->user['uid'];
-
-            self::getDatabaseConnection()->exec_UPDATEquery(
-                'be_sessions',
-                $whereClause,
-                $updateData
+            $sessionBackend = self::getSessionBackend();
+            $sessionBackend->update(
+                self::getBackendUser()->getSessionId(),
+                [
+                    'ses_userid' => (int)$targetUser['uid'],
+                    'ses_backuserid' => (int)self::getBackendUser()->user['uid']
+                ]
             );
 
             $redirectUrl = 'index.php' . ($GLOBALS['TYPO3_CONF_VARS']['BE']['interfaces'] ? '' : '?commandLI=1');
@@ -347,5 +342,14 @@ class TcBeuserUtility
     protected static function getDatabaseConnection()
     {
         return $GLOBALS['TYPO3_DB'];
+    }
+
+    /**
+     * @return SessionBackendInterface
+     */
+    protected static function getSessionBackend()
+    {
+        $loginType = self::getBackendUser()->getLoginType();
+        return GeneralUtility::makeInstance(SessionManager::class)->getSessionBackend($loginType);
     }
 }
