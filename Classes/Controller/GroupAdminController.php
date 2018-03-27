@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Controller;
+namespace Dkd\TcBeuser\Controller;
 
 /***************************************************************
  *  Copyright notice
@@ -24,8 +24,8 @@ namespace dkd\TcBeuser\Controller;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use dkd\TcBeuser\Module\AbstractModuleController;
-use dkd\TcBeuser\Utility\TcBeuserUtility;
+use Dkd\TcBeuser\Module\AbstractModuleController;
+use Dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Form\FormResultCompiler;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -44,7 +44,6 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  */
 class GroupAdminController extends AbstractModuleController
 {
-
     /**
      * Name of the module
      *
@@ -56,7 +55,7 @@ class GroupAdminController extends AbstractModuleController
     public $pageinfo;
 
     /**
-     * @var \dkd\TcBeuser\Utility\EditFormUtility
+     * @var \Dkd\TcBeuser\Utility\EditFormUtility
      */
     protected $editForm;
 
@@ -169,7 +168,7 @@ class GroupAdminController extends AbstractModuleController
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
             /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-            $tce = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
+            $tce = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
             $tce->stripslashes_values=0;
 
             // Setting default values specific for the user:
@@ -352,8 +351,8 @@ class GroupAdminController extends AbstractModuleController
     public function getGroupList()
     {
         $content = '';
-        /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
-        $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
+        /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        $dblist = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\RecordListUtility::class);
         $dblist->script = GeneralUtility::getIndpEnv('SCRIPT_NAME');
         $dblist->alternateBgColors = true;
 
@@ -456,8 +455,8 @@ class GroupAdminController extends AbstractModuleController
         /** @var FormResultCompiler formResultCompiler */
         $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
 
-        /** @var \dkd\TcBeuser\Utility\EditFormUtility editForm */
-        $this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
+        /** @var \Dkd\TcBeuser\Utility\EditFormUtility editForm */
+        $this->editForm = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\EditFormUtility::class);
         $this->editForm->formResultCompiler = $formResultCompiler;
         $this->editForm->columnsOnly = $showColumn;
         $this->editForm->editconf = $this->editconf;

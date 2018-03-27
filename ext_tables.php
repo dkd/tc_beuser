@@ -30,11 +30,9 @@ if (TYPO3_MODE == 'BE') {
             'access' => 'group,user',
             'name' => 'tcTools',
             'labels' => array(
-                'tabs_images' => array(
-                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleTcTools.gif',
-                ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangTcTools.xlf',
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangTcTools.xlf'
             ),
+            'icon' => 'EXT:tc_beuser/Resources/Public/Images/moduleTcTools.svg'
         )
     );
 
@@ -45,16 +43,14 @@ if (TYPO3_MODE == 'BE') {
         'bottom',
         '',
         array(
-            'routeTarget' => dkd\TcBeuser\Controller\UserAdminController::class . '::mainAction',
+            'routeTarget' => Dkd\TcBeuser\Controller\UserAdminController::class . '::mainAction',
             'access' => 'group,user',
             'name' => 'tcTools_UserAdmin',
             'workspaces' => 'online',
             'labels' => array(
-                'tabs_images' => array(
-                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleUserAdmin.gif',
-                ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleUserAdmin.xlf',
-            )
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleUserAdmin.xlf'
+            ),
+            'icon' => 'EXT:tc_beuser/Resources/Public/Images/moduleUserAdmin.svg'
         )
     );
 
@@ -65,16 +61,14 @@ if (TYPO3_MODE == 'BE') {
         'bottom',
         '',
         array(
-            'routeTarget' => dkd\TcBeuser\Controller\GroupAdminController::class . '::mainAction',
+            'routeTarget' => Dkd\TcBeuser\Controller\GroupAdminController::class . '::mainAction',
             'access' => 'group,user',
             'name' => 'tcTools_GroupAdmin',
             'workspaces' => 'online',
             'labels' => array(
-                'tabs_images' => array(
-                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleGroupAdmin.gif',
-                ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleGroupAdmin.xlf',
-            )
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleGroupAdmin.xlf'
+            ),
+            'icon' => 'EXT:tc_beuser/Resources/Public/Images/moduleGroupAdmin.svg'
         )
     );
 
@@ -85,16 +79,14 @@ if (TYPO3_MODE == 'BE') {
         'bottom',
         '',
         array(
-            'routeTarget' => dkd\TcBeuser\Controller\FilemountsViewController::class . '::mainAction',
+            'routeTarget' => Dkd\TcBeuser\Controller\FilemountsViewController::class . '::mainAction',
             'access' => 'group,user',
             'name' => 'tcTools_FilemountsView',
             'workspaces' => 'online',
             'labels' => array(
-                'tabs_images' => array(
-                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleFilemountsView.gif',
-                ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleFilemountsView.xlf',
-            )
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleFilemountsView.xlf'
+            ),
+            'icon' => 'EXT:tc_beuser/Resources/Public/Images/moduleFilemountsView.svg'
         )
     );
 
@@ -105,23 +97,21 @@ if (TYPO3_MODE == 'BE') {
         'bottom',
         '',
         array(
-            'routeTarget' => dkd\TcBeuser\Controller\OverviewController::class . '::mainAction',
+            'routeTarget' => Dkd\TcBeuser\Controller\OverviewController::class . '::mainAction',
             'access' => 'group,user',
             'name' => 'tcTools_Overview',
             'workspaces' => 'online',
             'labels' => array(
-                'tabs_images' => array(
-                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleOverview.gif',
-                ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleOverview.xlf',
-            )
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleOverview.xlf'
+            ),
+            'icon' => 'EXT:tc_beuser/Resources/Public/Images/moduleOverview.svg'
         )
     );
 
     # Overview Module
     // Module Web > Access
     \TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerModule(
-        'dkd.TcBeuser',
+        'Dkd.TcBeuser',
         'web',
         'tx_Permission',
         'bottom',
@@ -136,8 +126,9 @@ if (TYPO3_MODE == 'BE') {
         )
     );
 
-    \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::registerAjaxHandler(
-        'PermissionAjaxController::dispatch',
-        'dkd\\TcBeuser\\Controller\\PermissionAjaxController->dispatch'
-    );
+    // register a Ajax handler
+    $GLOBALS['TYPO3_CONF_VARS']['BE']['AJAX']['PermissionAjaxController::dispatch'] = [
+        'callbackMethod' => \Dkd\TcBeuser\Controller\PermissionAjaxController::class . '->dispatch',
+        'csrfTokenCheck' => true
+    ];
 }

@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Controller;
+namespace Dkd\TcBeuser\Controller;
 
 /***************************************************************
  *  Copyright notice
@@ -24,8 +24,8 @@ namespace dkd\TcBeuser\Controller;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use dkd\TcBeuser\Module\AbstractModuleController;
-use dkd\TcBeuser\Utility\TcBeuserUtility;
+use Dkd\TcBeuser\Module\AbstractModuleController;
+use Dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Form\FormResultCompiler;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -34,6 +34,7 @@ use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use Dkd\TcBeuser\Utility\RecordListUtility;
 
 /**
  * Module 'User Admin' for the 'tc_beuser' extension.
@@ -45,7 +46,6 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  */
 class UserAdminController extends AbstractModuleController
 {
-
     /**
      * Name of the module
      *
@@ -62,7 +62,7 @@ class UserAdminController extends AbstractModuleController
     public $permChecker;
 
     /**
-     * @var \dkd\TcBeuser\Utility\EditFormUtility
+     * @var \Dkd\TcBeuser\Utility\EditFormUtility
      */
     protected $editForm;
 
@@ -187,7 +187,7 @@ class UserAdminController extends AbstractModuleController
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
             /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-            $tce = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
+            $tce = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
 
             // Setting default values specific for the user:
             $TCAdefaultOverride = $this->getBackendUser()->getTSConfigProp('TCAdefaults');
@@ -419,8 +419,8 @@ class UserAdminController extends AbstractModuleController
     public function getUserList()
     {
         $content = '';
-        /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
-        $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
+        /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
         $dblist->permChecker = &$this->permChecker;
         $dblist->script = BackendUtility::getModuleUrl($this->moduleName);
         $dblist->alternateBgColors = true;
@@ -463,7 +463,7 @@ class UserAdminController extends AbstractModuleController
             while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
                 $exclude[] = "'".$row['username']."'";
             }
-            $dblist->excludeBE = '('.implode(',', $exclude).')';
+            $dblist->excludeBE = $exclude;
         }
 
         $dblist->start($pid, $this->table, $this->pointer, $this->search_field);
@@ -577,8 +577,8 @@ class UserAdminController extends AbstractModuleController
         /** @var FormResultCompiler formResultCompiler */
         $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
 
-        /** @var \dkd\TcBeuser\Utility\EditFormUtility editForm */
-        $this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
+        /** @var \Dkd\TcBeuser\Utility\EditFormUtility editForm */
+        $this->editForm = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\EditFormUtility::class);
         $this->editForm->formResultCompiler = $formResultCompiler;
         $this->editForm->columnsOnly = $showColumn;
         $this->editForm->editconf = $this->editconf;

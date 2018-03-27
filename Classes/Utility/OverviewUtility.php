@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Utility;
+namespace Dkd\TcBeuser\Utility;
 
 /***************************************************************
 *  Copyright notice
@@ -24,7 +24,6 @@ namespace dkd\TcBeuser\Utility;
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-use TYPO3\CMS\Backend\Form\Utility\FormEngineUtility;
 use TYPO3\CMS\Backend\Module\ModuleLoader;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -32,10 +31,10 @@ use TYPO3\CMS\Core\Database\DatabaseConnection;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser;
-use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Lang\LanguageService;
+use TYPO3\CMS\Backend\Domain\Repository\Module\BackendModuleRepository;
+use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 
 /**
  * OverviewUtility.php
@@ -48,7 +47,6 @@ use TYPO3\CMS\Lang\LanguageService;
  */
 class OverviewUtility
 {
-
     public $row;
     /**
      * @var array $availableMethods a list of methods, that are directly available ( ~ the interface)
@@ -344,21 +342,22 @@ class OverviewUtility
                     $res = $this->getDatabaseConnection()->exec_SELECTquery(
                         '*',
                         $this->table,
-                        'uid = '.$fm
+                        'uid=' . (int) $fm . BackendUtility::deleteClause($this->table)
                     );
-                    $filemount = $this->getDatabaseConnection()->sql_fetch_assoc($res);
 
-                    $fmIcon = $this->iconFactory->getIconForRecord(
-                        $this->table,
-                        $filemount,
-                        Icon::SIZE_SMALL
-                    )->render();
+                    if ($filemount = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
+                        $fmIcon = $this->iconFactory->getIconForRecord(
+                            $this->table,
+                            $filemount,
+                            Icon::SIZE_SMALL
+                        )->render();
 
-                    $items[] = '<tr><td>' .
-                        $fmIcon . $filemount['title'] . '&nbsp;' .
-                        '</td><td>' .
-                        $this->makeUserControl($filemount) .
-                        '</td></tr>'."\n";
+                        $items[] = '<tr><td>' .
+                            $fmIcon . $filemount['title'] . '&nbsp;' .
+                            '</td><td>' .
+                            $this->makeUserControl($filemount) .
+                            '</td></tr>'."\n";
+                    }
                 }
             }
             $content .= '<table>'.implode('', $items).'</table>';
@@ -596,8 +595,8 @@ class OverviewUtility
         $icon = $this->getTreeControlIcon($open);
 
         $adLabel = array(
-            'ALLOW' => $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xml:labels.allow'),
-            'DENY' => $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xml:labels.deny'),
+            'ALLOW' => $this->getLanguageService()->sL('EXT:lang/Resources/Private/Language/locallang_core.xlf:labels.allow'),
+            'DENY' => $this->getLanguageService()->sL('EXT:lang/Resources/Private/Language/locallang_core.xlf:labels.deny'),
         );
 
         $iconsPath = array(
@@ -660,14 +659,16 @@ class OverviewUtility
             $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $allowed_languages = explode(',', $row['allowed_languages']);
             reset($allowed_languages);
-            $availLang = BackendUtility::getSystemLanguages();
+
+            $translationConfigurationProvider = $this->getTranslationConfigurationProvider();
+            $availLang = $translationConfigurationProvider->getSystemLanguages();
 
             $data = '';
             foreach ($allowed_languages as $langId) {
                 foreach ($availLang as $availLangInfo) {
                     if ($availLangInfo[1] == $langId) {
-                        $iconFlag = FormEngineUtility::getIconHtml($availLangInfo[2]);
-                        $data .= $iconFlag . '&nbsp;' . $availLangInfo[0].'<br />';
+                        $iconFlag =  $this->iconFactory->getIcon($availLangInfo['flagIcon'], Icon::SIZE_SMALL)->render();
+                        $data .= $iconFlag . '&nbsp;' . $availLangInfo['title'] . ' [' . $availLangInfo['uid'] . ']<br />';
                     }
                 }
             }
@@ -726,7 +727,7 @@ class OverviewUtility
 
         if ($open) {
             $content .= '<br />';
-            $userAuthGroup = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Authentication\\BackendUserAuthentication');
+            $userAuthGroup = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Authentication\BackendUserAuthentication::class);
                 //get workspace perms
             $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'workspace_perms',
@@ -837,23 +838,24 @@ class OverviewUtility
 
             //var_dump($allMods);
             $items = array();
+            $backendModuleRepository = $this->getBackendModuleRepository();
             foreach ($loadModules->modListGroup as $id => $moduleName) {
                 if (GeneralUtility::inList($row['groupMods'], $moduleName)) {
-                    $moduleIcon = $this->getLanguageService()->moduleLabels['tabs_images'][$moduleName . '_tab'];
-                    if ($moduleIcon) {
-                        $moduleIcon  = '../' . PathUtility::stripPathSitePrefix($moduleIcon);
-                    }
+                    $module = $backendModuleRepository->findByModuleName($moduleName);
+                    $moduleIcon = $module->getIcon();
 
                     $moduleLabel = '';
                     // Add label for main module:
                     $pp = explode('_', $moduleName);
                     if (count($pp) > 1) {
-                        $moduleLabel .= $this->getLanguageService()->moduleLabels['tabs'][$pp[0] . '_tab'] . '>';
+                        $parentModule = $backendModuleRepository->findByModuleName($pp[0]);
+                        $moduleLabel = $parentModule->getTitle() . '>';
                     }
                     // Add modules own label now:
-                    $moduleLabel .= $this->getLanguageService()->moduleLabels['tabs'][$moduleName . '_tab'];
+                    $moduleLabel .= $module->getTitle();
 
-                    $items[] = '<img src="' . $moduleIcon . '" width="16" height="16"/>&nbsp;'. $moduleLabel;
+
+                    $items[] = $moduleIcon . '&nbsp;' . $moduleLabel;
                 }
             }
             $content .= implode('<br />', $items);
@@ -1072,8 +1074,8 @@ class OverviewUtility
         $depth = 10;
 
             // Initialize tree object:
-        /** @var \dkd\TcBeuser\Utility\GroupTreeUtility $tree */
-        $tree = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\GroupTreeUtility');
+        /** @var \Dkd\TcBeuser\Utility\GroupTreeUtility $tree */
+        $tree = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\GroupTreeUtility::class);
         $tree->init();
         $tree->expandAll = true;
 
@@ -1156,6 +1158,26 @@ class OverviewUtility
     protected function getDatabaseConnection()
     {
         return $GLOBALS['TYPO3_DB'];
+    }
+
+    /**
+     * Returns the backend module registry
+     *
+     * @return BackendModuleRepository
+     */
+    protected function getBackendModuleRepository()
+    {
+        return GeneralUtility::makeInstance(BackendModuleRepository::class);
+    }
+
+    /**
+     * Returns the TranslationConfigurationProvider
+     *
+     * @return TranslationConfigurationProvider
+     */
+    protected function getTranslationConfigurationProvider()
+    {
+        return GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
     }
 
     /**

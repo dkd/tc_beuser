@@ -1,4 +1,5 @@
 {
+  "version" : "4.0.0-dev",
   "name": "dkd/tc-beuser",
   "type": "typo3-cms-extension",
   "description": "A collection of modules for administer BE users more comfortably",
@@ -22,12 +23,12 @@
     "issues": "https://github.com/dkd/tc_beuser"
   },
   "require": {
-    "php": ">=5.5.0",
-    "typo3/cms-core": ">=7.6,<8.0"
+    "php": ">=7.0.0",
+    "typo3/cms-core": ">=8.7,<9.0"
   },
   "autoload": {
     "psr-4": {
-      "dkd\\TcBeuser\\": "Classes"
+      "Dkd\\TcBeuser\\": "Classes/"
     }
   },
   "replace": {
