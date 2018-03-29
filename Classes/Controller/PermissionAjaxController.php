@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Controller;
+namespace Dkd\TcBeuser\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -295,11 +295,9 @@ class PermissionAjaxController
      * @param string $username The TYPO3 BE username (used to display in the element)
      * @param bool $validUser Must be set to FALSE, if the user has no name or is deleted
      * @return string The new group wrapped in HTML
-     * @deprecated since TYPO3 CMS 7, will be removed in TYPO3 CMS 8. This is now solved with fluid.
      */
     public static function renderOwnername($page, $ownerUid, $username, $validUser = true)
     {
-        GeneralUtility::logDeprecatedFunction();
         $elementId = 'o_' . $page;
         return '<span id="' . $elementId . '"><a class="ug_selector changeowner" data-page="' . $page . '" data-owner="' . $ownerUid . '" data-username="' . htmlspecialchars($username) . '">' . ($validUser ? ($username == '' ? '<span class=not_set>[' . $GLOBALS['LANG']->getLL('notSet') . ']</span>' : htmlspecialchars(GeneralUtility::fixed_lgd_cs($username, 20))) : '<span class=not_set title="' . htmlspecialchars(GeneralUtility::fixed_lgd_cs($username, 20)) . '">[' . $GLOBALS['LANG']->getLL('deleted') . ']</span>') . '</a></span>';
     }
@@ -312,11 +310,9 @@ class PermissionAjaxController
      * @param string $groupname The TYPO3 BE groupname (used to display in the element)
      * @param bool $validGroup Must be set to FALSE, if the group has no name or is deleted
      * @return string The new group wrapped in HTML
-     * @deprecated since TYPO3 CMS 7, will be removed in TYPO3 CMS 8. This is now solved with fluid.
      */
     public static function renderGroupname($page, $groupUid, $groupname, $validGroup = true)
     {
-        GeneralUtility::logDeprecatedFunction();
         $elementId = 'g_' . $page;
         return '<span id="' . $elementId . '"><a class="ug_selector changegroup" data-page="' . $page . '" data-group="' . $groupUid . '" data-groupname="' . htmlspecialchars($groupname) . '">' . ($validGroup ? ($groupname == '' ? '<span class=not_set>[' . $GLOBALS['LANG']->getLL('notSet') . ']</span>' : htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupname, 20))) : '<span class=not_set title="' . htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupname, 20)) . '">[' . $GLOBALS['LANG']->getLL('deleted') . ']</span>') . '</a></span>';
     }
@@ -346,11 +342,9 @@ class PermissionAjaxController
      * @param int $pageId The TYPO3 page id
      * @param string $who The scope (user, group or everybody)
      * @return string HTML marked up x/* indications.
-     * @deprecated since TYPO3 CMS 7, will be removed in TYPO3 CMS 8. This is now solved with fluid.
      */
     public static function renderPermissions($int, $pageId = 0, $who = 'user')
     {
-        GeneralUtility::logDeprecatedFunction();
         $str = '';
         $permissions = array(1, 16, 2, 4, 8);
         /** @var IconFactory $iconFactory */

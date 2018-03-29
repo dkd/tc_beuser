@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Controller;
+namespace Dkd\TcBeuser\Controller;
 
 /***************************************************************
  *  Copyright notice
@@ -24,8 +24,8 @@ namespace dkd\TcBeuser\Controller;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use dkd\TcBeuser\Module\AbstractModuleController;
-use dkd\TcBeuser\Utility\TcBeuserUtility;
+use Dkd\TcBeuser\Module\AbstractModuleController;
+use Dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Form\FormResultCompiler;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -44,7 +44,6 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  */
 class FilemountsViewController extends AbstractModuleController
 {
-
     /**
      * Name of the module
      *
@@ -55,7 +54,7 @@ class FilemountsViewController extends AbstractModuleController
     public $jsCode;
     public $pageinfo;
 
-    /** @var  \dkd\TcBeuser\Utility\EditFormUtility */
+    /** @var  \Dkd\TcBeuser\Utility\EditFormUtility */
     public $editForm;
 
     /**
@@ -173,7 +172,7 @@ class FilemountsViewController extends AbstractModuleController
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
             /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-            $tce = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
+            $tce = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
 
             // Setting default values specific for the user:
             $TCAdefaultOverride = $this->getBackendUser()->getTSConfigProp('TCAdefaults');
@@ -352,8 +351,8 @@ class FilemountsViewController extends AbstractModuleController
     {
         $content = '';
 
-        /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
-        $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
+        /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        $dblist = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\RecordListUtility::class);
         $dblist->script = GeneralUtility::linkThisScript();
         $dblist->alternateBgColors = true;
         $dblist->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
@@ -446,8 +445,8 @@ class FilemountsViewController extends AbstractModuleController
         $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
 
         // Creating the editing form, wrap it with buttons, document selector etc.
-        /** @var \dkd\TcBeuser\Utility\EditFormUtility editForm */
-        $this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
+        /** @var \Dkd\TcBeuser\Utility\EditFormUtility editForm */
+        $this->editForm = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\EditFormUtility::class);
         $this->editForm->formResultCompiler = $formResultCompiler;
         $this->editForm->columnsOnly = 'title,path';
         $this->editForm->editconf = $this->editconf;

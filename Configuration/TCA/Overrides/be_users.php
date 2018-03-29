@@ -3,7 +3,6 @@ if (!defined('TYPO3_MODE')) {
     die('Access denied.');
 }
 
-
 if (TYPO3_MODE == 'BE') {
     // enabling regular BE users to edit BE users
     $GLOBALS['TCA']['be_users']['ctrl']['adminOnly'] = 0;
@@ -11,14 +10,13 @@ if (TYPO3_MODE == 'BE') {
     //wizard for the password generator
     $wizConfig = array(
         'type' => 'userFunc',
-        'userFunc' => 'dkd\\TcBeuser\\Utility\\PwdWizardUtility->main',
+        'userFunc' => \Dkd\TcBeuser\Utility\PwdWizardUtility::class . '->main',
         'params' => array('type' => 'password')
     );
 
     $GLOBALS['TCA']['be_users']['columns']['password']['config']['wizards']['tx_tcbeuser'] = $wizConfig;
     $GLOBALS['TCA']['be_users']['columns']['usergroup']['config']['itemsProcFunc'] =
-        'dkd\\TcBeuser\\Utility\\TcBeuserUtility->getGroupsID';
-
+        \Dkd\TcBeuser\Utility\TcBeuserUtility::class . '->getGroupsID';
 }
 
 // fe_users modified

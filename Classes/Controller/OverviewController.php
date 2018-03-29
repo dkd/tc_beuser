@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Controller;
+namespace Dkd\TcBeuser\Controller;
 
 /***************************************************************
  *  Copyright notice
@@ -24,8 +24,8 @@ namespace dkd\TcBeuser\Controller;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use dkd\TcBeuser\Module\AbstractModuleController;
-use dkd\TcBeuser\Utility\TcBeuserUtility;
+use Dkd\TcBeuser\Module\AbstractModuleController;
+use Dkd\TcBeuser\Utility\TcBeuserUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
@@ -46,7 +46,6 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  */
 class OverviewController extends AbstractModuleController
 {
-
     /**
      * Name of the module
      *
@@ -87,7 +86,7 @@ class OverviewController extends AbstractModuleController
             $open     = GeneralUtility::_POST('open');
             $backPath = GeneralUtility::_POST('backPath');
 
-            $userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
+            $userView = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\OverviewUtility::class);
             $content  = $userView->handleMethod($method, $groupId, $open, $backPath);
 
             echo $content;
@@ -149,10 +148,10 @@ class OverviewController extends AbstractModuleController
             // set JS for the AJAX call on overview
             // TODO: rewrite JS?
             $this->moduleTemplate->getPageRenderer()->addJsFile(
-                ExtensionManagementUtility::extRelPath('tc_beuser') . 'Resources/Public/JavaScript/prototype.js'
+                '../' . ExtensionManagementUtility::siteRelPath('tc_beuser') . 'Resources/Public/JavaScript/prototype.js'
             );
             $this->moduleTemplate->getPageRenderer()->addJsFile(
-                ExtensionManagementUtility::extRelPath('tc_beuser') . 'Resources/Public/JavaScript/ajax.js'
+                '../' . ExtensionManagementUtility::siteRelPath('tc_beuser') . 'Resources/Public/JavaScript/ajax.js'
             );
 
             $this->content = $this->moduleTemplate->header($title);
@@ -292,8 +291,8 @@ class OverviewController extends AbstractModuleController
             );
             $this->table = 'be_users';
 
-            /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
-            $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
+            /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
+            $dblist = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\RecordListUtility::class);
             $dblist->backPath = $this->doc->backPath;
             $dblist->script = $this->MCONF['script'];
             $dblist->alternateBgColors = true;
@@ -351,8 +350,8 @@ class OverviewController extends AbstractModuleController
             $content .= $this->getColSelector();
             $content .= '<br />';
             $content .= $this->getUserViewHeader($userRecord);
-            /** @var \dkd\TcBeuser\Utility\OverviewUtility $userView */
-            $userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
+            /** @var \Dkd\TcBeuser\Utility\OverviewUtility $userView */
+            $userView = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\OverviewUtility::class);
 
             //if there is member in the compareFlags array, remove it. There is no 'member' in user view
             unset($this->compareFlags['members']);
@@ -379,8 +378,8 @@ class OverviewController extends AbstractModuleController
             );
             $this->table = 'be_groups';
 
-            /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
-            $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
+            /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
+            $dblist = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\RecordListUtility::class);
             $dblist->backPath = $this->doc->backPath;
             $dblist->script = $this->MCONF['script'];
             $dblist->alternateBgColors = true;
@@ -434,8 +433,8 @@ class OverviewController extends AbstractModuleController
             $content .= '<br />';
 //			$content .= $this->getUserViewHeader($groupRecord);
 
-            /** @var \dkd\TcBeuser\Utility\OverviewUtility $userView */
-            $userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
+            /** @var \Dkd\TcBeuser\Utility\OverviewUtility $userView */
+            $userView = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\OverviewUtility::class);
 
             $content .= $userView->getTableGroup($groupRecord, $this->compareFlags);
         }
@@ -531,7 +530,7 @@ class OverviewController extends AbstractModuleController
         $control .= '<a href="#" class="btn btn-default" ' .
             'onclick="' . htmlspecialchars('if (confirm(' .
                 GeneralUtility::quoteJSvalue(
-                    $this->getLanguageService()->getLL('deleteWarning') .
+                    sprintf($this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:mess.delete'), $userRecord['username']) .
                     BackendUtility::referenceCount(
                         $this->table,
                         $userRecord['uid'],
@@ -564,20 +563,25 @@ class OverviewController extends AbstractModuleController
     /**
      * ingo.renner@dkd.de: from BackendUtility, modified
      *
-     * Returns a JavaScript string (for an onClick handler) which will load the alt_doc.php script that shows the form for editing of the record(s) you have send as params.
+     * Returns a JavaScript string (for an onClick handler) which will load the EditDocumentController script that shows the form for editing of the record(s) you have send as params.
      * REMEMBER to always htmlspecialchar() content in href-properties to ampersands get converted to entities (XHTML requirement and XSS precaution)
-     * Usage: 35
      *
-     * @param string $params is parameters sent along to alt_doc.php. This requires a much more details description which you must seek in Inside TYPO3s documentation of the alt_doc.php API. And example could be '&edit[pages][123]=edit' which will show edit form for page record 123.
-     * @param string $requestUri is an optional returnUrl you can set - automatically set to REQUEST_URI.
+     * @param string $params Parameters sent along to EditDocumentController. This requires a much more details description which you must seek in Inside TYPO3s documentation of the FormEngine API. And example could be '&edit[pages][123] = edit' which will show edit form for page record 123.
+     * @param string $requestUri An optional returnUrl you can set - automatically set to REQUEST_URI.
+     *
      * @return string
-     * @see template::issueCommand()
+     * @see: BackendUtility::editOnClick
      */
-    public function editOnClick($params, $requestUri = '')
+    public static function editOnClick($params, $requestUri = '')
     {
-        $retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
-        return "window.location.href='" . BackendUtility::getModuleUrl('tcTools_UserAdmin') . $retUrl . $params . "'; return false;";
+        if ($requestUri == -1) {
+            $returnUrl = 'T3_THIS_LOCATION';
+        } else {
+            $returnUrl = GeneralUtility::quoteJSvalue(rawurlencode($requestUri ?: GeneralUtility::getIndpEnv('REQUEST_URI')));
+        }
+        return 'window.location.href=' . GeneralUtility::quoteJSvalue(BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . '&returnUrl=') . '+' . $returnUrl . '; return false;';
     }
+
 
     /**
      * create link for the hide/unhide and delete icon.
