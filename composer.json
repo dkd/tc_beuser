@@ -1,5 +1,5 @@
 {
-  "version" : "4.0.0",
+  "version" : "4.1.0-dev",
   "name": "dkd/tc-beuser",
   "type": "typo3-cms-extension",
   "description": "A collection of modules for administer BE users more comfortably",
