@@ -303,7 +303,7 @@ class RecordListUtility extends DatabaseRecordList
             $addWhere = (string) $queryBuilder->expr()->andX(
                 $addWhere,
                 $queryBuilder->expr()->eq('admin', 0),
-                $queryBuilder->expr()->notLike('username', '_cli%')
+                $queryBuilder->expr()->notLike('username', "'_cli%'")
             );
         }
 
