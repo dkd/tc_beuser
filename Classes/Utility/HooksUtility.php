@@ -23,7 +23,7 @@ namespace Dkd\TcBeuser\Utility;
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
-use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -38,26 +38,22 @@ class HooksUtility
 {
     public $columns;
 
-    public function befuncPostProcessValue($params, $ref)
-    {
-    }
+    public function befuncPostProcessValue($params, $ref) {}
 
     public function fakeAdmin($params, &$pObj)
     {
-        $access = $params['outputPermissions'];
-
         if (is_array($GLOBALS['MCONF']) &&
             GeneralUtility::isFirstPartOfStr($GLOBALS['MCONF']['name'], 'tcTools') &&
             $GLOBALS['BE_USER']->modAccess($GLOBALS['MCONF'], true)
         ) {
-            $access = 31;
+            return 31;
         }
 
-        return $access;
+        return $params['outputPermissions'];
     }
 
     /**
-     * updating be_users
+     * Updating be_users
      *
      * @param array $incomingFieldArray
      * @param string $table
@@ -97,7 +93,7 @@ class HooksUtility
     }
 
     /**
-     * put back 'members' field in be_groups TCA
+     * Put back 'members' field in be_groups TCA
      */
     public function processDatamap_afterDatabaseOperations($status, $table, $id, $fieldArray, $tce)
     {
@@ -110,13 +106,17 @@ class HooksUtility
                 } else {
                     $uid = $id;
                 }
-                $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-                    'uid, title',
-                    $table,
-                    'uid ='.$uid
-                );
+                $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                    ->getQueryBuilderForTable($table);
+                $res = $queryBuilder->select('uid', 'title')
+                    ->from($table)
+                    ->where($queryBuilder->expr()->eq(
+                        'uid',
+                        $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT))
+                    )
+                    ->execute();
 
-                while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+                while ($row = $res->fetch()) {
                     $usergroup[$row['uid']] = $row['title'];
                 }
 
@@ -128,12 +128,15 @@ class HooksUtility
                 if (!empty($userList)) {
                     foreach ($userList as $userUid) {
                         //get list of groups from user
-                        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-                            '*',
-                            'be_users',
-                            'uid = '.$userUid
-                        );
-                        $userData = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+                        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                            ->getQueryBuilderForTable('be_users');
+                        $queryBuilder->select('*')->from('be_users')
+                            ->where($queryBuilder->expr()->eq(
+                                'uid',
+                                $queryBuilder->createNamedParameter($userUid, \PDO::PARAM_INT))
+                            )
+                            ->execute();
+                        $userData = $res->fetch();
 
                         //only new users
                         if (!GeneralUtility::inList($userData['usergroup'], $uid)) {
@@ -142,11 +145,9 @@ class HooksUtility
                             $updateArray = array(
                                 'usergroup' => $newGroup
                             );
-                            $res = $GLOBALS['TYPO3_DB']->exec_UPDATEquery(
-                                'be_users',
-                                'uid='.$userUid,
-                                $updateArray
-                            );
+                            $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+                            $connection = $connectionPool->getConnectionForTable('be_users');
+                            $res = $connection->update('be_users', $updateArray, [ 'uid' => $userUid ]);
                         }
                     }
                 }
@@ -154,20 +155,21 @@ class HooksUtility
             //remove user
             //get all user, which in the group but not in incomingFieldArray['members']
             if (isset($tce->datamap[$table][$id]['members'])) {
-                $subWhere = '';
+                $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                    ->getQueryBuilderForTable('be_users');
+               $queryBuilder->select('*')->from('be_users')
+                    ->where($queryBuilder->expr()->like(
+                        'usergroup',
+                        $queryBuilder->createNamedParameter('%'.$uid.'%', \PDO::PARAM_INT))
+                    );
                 if (!empty($userList)) {
-                    $subWhere = 'uid not in ('.implode(',', $userList).') AND ';
+                    $queryBuilder->andWhere(
+                        $queryBuilder->expr()->notIn('uid', implode(',', $userList))
+                    );
                 }
-                $where = $subWhere.'usergroup like '.$GLOBALS['TYPO3_DB']->fullQuoteStr('%'.$uid.'%', $table).
-                    BackendUtility::BEenableFields('be_users').
-                    BackendUtility::deleteClause('be_users');
-                $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-                    '*',
-                    'be_users',
-                    $where
-                );
+                $res = $queryBuilder->execute();
 
-                while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+                while ($row = $res->fetch()) {
                     //remove groups id
                     $usergroup = explode(',', $row['usergroup']);
                     for ($i=0; $i<=(count($usergroup)-1); $i++) {
@@ -175,15 +177,13 @@ class HooksUtility
                             unset($usergroup[$i]);
                         }
                     }
-                    $updateArray = array(
-                        'usergroup' => implode(',', $usergroup)
-                    );
-
                     //put it back
-                    $res1 = $GLOBALS['TYPO3_DB']->exec_UPDATEquery(
+                    $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+                    $connection = $connectionPool->getConnectionForTable('be_users');
+                    $connection->update(
                         'be_users',
-                        'uid='.$row['uid'],
-                        $updateArray
+                        [ 'usergroup' => implode(',', $usergroup) ],
+                        [ 'uid' => $row['uid'] ]
                     );
                 }
             }
@@ -191,7 +191,7 @@ class HooksUtility
 
             //put back 'members' to TCA
             $tempCol = $this->columns;
-            ExtensionManagementUtility::addTCAcolumns("be_groups", $tempCol, 1);
+            ExtensionManagementUtility::addTCAcolumns("be_groups", $tempCol);
         }
     }
 }

@@ -1,7 +1,7 @@
 <?php
 namespace Dkd\TcBeuser\Controller;
 
-/*
+/**
  * This file is part of the TYPO3 CMS project.
  *
  * It is free software; you can redistribute it and/or modify it under
@@ -14,15 +14,20 @@ namespace Dkd\TcBeuser\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+use InvalidArgumentException;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
-use TYPO3\CMS\Core\Database\DatabaseConnection;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\Icon;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Extbase\Mvc\Exception\StopActionException;
+use TYPO3\CMS\Extbase\Mvc\Exception\UnsupportedRequestTypeException;
 use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
@@ -148,11 +153,10 @@ class PermissionController extends ActionController
      * Registers the Icons into the docheader
      *
      * @return void
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     protected function registerDocHeaderButtons()
     {
-        /** @var ButtonBar $buttonBar */
         $buttonBar = $this->view->getModuleTemplate()->getDocHeaderComponent()->getButtonBar();
         $currentRequest = $this->request;
         $moduleName = $currentRequest->getPluginName();
@@ -284,7 +288,15 @@ class PermissionController extends ActionController
         $this->view->assign('viewTree', $tree->tree);
 
         // CSH for permissions setting
-        $this->view->assign('cshItem', BackendUtility::cshItem('xMOD_csh_corebe', 'perm_module', null, '<span class="btn btn-default btn-sm">|</span>'));
+        $this->view->assign(
+            'cshItem',
+            BackendUtility::cshItem(
+                'xMOD_csh_corebe',
+                'perm_module',
+                null,
+                '<span class="btn btn-default btn-sm">|</span>'
+            )
+        );
     }
 
     /**
@@ -313,7 +325,12 @@ class PermissionController extends ActionController
         $beUserArray  = BackendUtility::getUserNames();
 
         // Owner selector
-        $beUserDataArray = array(0 => LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:selectNone', 'beuser'));
+        $beUserDataArray = [
+            0 => LocalizationUtility::translate(
+                'LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:selectNone',
+                'beuser'
+            )
+        ];
         foreach ($beUserArray as $uid => &$row) {
             $beUserDataArray[$uid] = $row['username'];
         }
@@ -340,6 +357,8 @@ class PermissionController extends ActionController
      * @param array $data
      * @param array $mirror
      * @return void
+     * @throws StopActionException
+     * @throws UnsupportedRequestTypeException
      */
     protected function updateAction(array $data, array $mirror)
     {
@@ -355,26 +374,26 @@ class PermissionController extends ActionController
 
                 // only changed page data, which the user is the owner
                 if ($this->checkUserPermission($pageUid)) {
-                    $this->getDatabaseConnection()->exec_UPDATEquery(
-                        'pages',
-                        'uid = ' . (int)$pageUid,
-                        $properties
-                    );
+                    $table = 'pages';
+                    $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+                    $connection = $connectionPool->getConnectionForTable($table);
+                    $connection->update($table, $properties, [ 'uid' => (int) $pageUid ]);
                     if (!empty($mirror['pages'][$pageUid])) {
                         $mirrorPages = GeneralUtility::trimExplode(',', $mirror['pages'][$pageUid]);
                         foreach ($mirrorPages as $mirrorPageUid) {
                             if ($this->checkUserPermission($mirrorPageUid)) {
-                                $this->getDatabaseConnection()->exec_UPDATEquery(
-                                    'pages',
-                                    'uid = ' . (int)$mirrorPageUid,
-                                    $properties
-                                );
+                                $connection->update($table, $properties, [ 'uid' => (int) $mirrorPageUid ]);
                             }
                         }
                     }
                 }
             }
-            $this->redirect('index', null, null, array('id' => $this->returnId, 'depth' => $this->depth));
+            $this->redirect(
+                'index',
+                null,
+                null,
+                [ 'id' => $this->returnId, 'depth' => $this->depth ]
+            );
         }
     }
 
@@ -386,32 +405,23 @@ class PermissionController extends ActionController
      */
     protected function checkUserPermission($pageUid)
     {
-        $allowed = false;
         $pageProperties = BackendUtility::getRecord('pages', $pageUid);
 
         if (($pageProperties['perms_userid'] == $this->getBackendUser()->user['uid']) ||
             $this->getBackendUser()->isAdmin()
         ) {
-            $allowed = true;
+            return true;
         }
 
-        return $allowed;
+        return false;
     }
 
     /**
-     * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     * @return BackendUserAuthentication
      */
     protected function getBackendUser()
     {
         return $GLOBALS['BE_USER'];
-    }
-
-    /**
-     * @return DatabaseConnection
-     */
-    protected function getDatabaseConnection()
-    {
-        return $GLOBALS['TYPO3_DB'];
     }
 
     /**
@@ -434,10 +444,19 @@ class PermissionController extends ActionController
         // If there are a hierarchy of page ids, then...
         if ($this->getBackendUser()->user['uid'] && !empty($tree->orig_ids_hierarchy)) {
             // Init:
-            $labelRecursive = LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:recursive', 'beuser');
-            $labelLevels = LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:levels', 'beuser');
-            $labelPagesAffected = LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:pages_affected', 'beuser');
-            $theIdListArr = array();
+            $labelRecursive = LocalizationUtility::translate(
+                'LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:recursive',
+                'beuser'
+            );
+            $labelLevels = LocalizationUtility::translate(
+                'LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:levels',
+                'beuser'
+            );
+            $labelPagesAffected = LocalizationUtility::translate(
+                'LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:pages_affected',
+                'beuser'
+            );
+            $theIdListArr = [];
             // Traverse the number of levels we want to allow recursive
             // setting of permissions for:
             for ($a = $this->getLevels; $a > 0; $a--) {
@@ -457,7 +476,7 @@ class PermissionController extends ActionController
     /**
      * Returns LanguageService
      *
-     * @return \TYPO3\CMS\Lang\LanguageService
+     * @return LanguageService
      */
     protected function getLanguageService()
     {

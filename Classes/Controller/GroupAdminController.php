@@ -1,6 +1,13 @@
 <?php
 namespace Dkd\TcBeuser\Controller;
 
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
+use Dkd\TcBeuser\Utility\RecordListUtility;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
+use Dkd\TcBeuser\Utility\EditFormUtility;
 /***************************************************************
  *  Copyright notice
  *
@@ -55,7 +62,7 @@ class GroupAdminController extends AbstractModuleController
     public $pageinfo;
 
     /**
-     * @var \Dkd\TcBeuser\Utility\EditFormUtility
+     * @var EditFormUtility
      */
     protected $editForm;
 
@@ -92,7 +99,9 @@ class GroupAdminController extends AbstractModuleController
      */
     public function loadLocallang()
     {
-        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf');
+        $this->getLanguageService()->includeLLFile(
+            'EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf'
+        );
         $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
     }
 
@@ -142,9 +151,9 @@ class GroupAdminController extends AbstractModuleController
         $data = $incoming[$table[0]][$uid[0]];
 
         //check if title has prefix. if not add it.
-        if (isset($this->getBackendUser()->userTS['tx_tcbeuser.']['createWithPrefix']) &&
-            !empty($this->getBackendUser()->userTS['tx_tcbeuser.']['createWithPrefix'])) {
-            $prefix = $this->getBackendUser()->userTS['tx_tcbeuser.']['createWithPrefix'];
+        if (isset($this->getBackendUser()->getTSConfig()['tx_tcbeuser.']['createWithPrefix']) &&
+            !empty($this->getBackendUser()->getTSConfig()['tx_tcbeuser.']['createWithPrefix'])) {
+            $prefix = $this->getBackendUser()->getTSConfig()['tx_tcbeuser.']['createWithPrefix'];
 
             if (strpos($data['title'], $prefix) !== 0 &&
                 !($this->MOD_SETTINGS['function'] == 'action' && isset($data['hidden']))
@@ -153,26 +162,28 @@ class GroupAdminController extends AbstractModuleController
             }
         }
 
-        //check if the same usergroup name is existed.
-        $row = $this->getDatabaseConnection()->exec_SELECTquery(
-            '*',
-            'be_groups',
-            'title = ' . $this->getDatabaseConnection()->fullQuoteStr($data['title'], 'be_groups')
-            .BackendUtility::deleteClause('be_groups')
-        );
+        $table = 'be_groups';
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+        $queryBuilder
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        $res = $queryBuilder->select('*')
+            ->from($table)
+            ->where($queryBuilder->expr()->eq('title', $queryBuilder->createNamedParameter($data['title'])))
+            ->execute();
 
-
-        if (($this->getDatabaseConnection()->sql_num_rows($row) > 0) && (strpos($uid[0], 'NEW') !== false)) {
+        if (($res->rowCount() > 0) && (strpos($uid[0], 'NEW') !== false)) {
             $this->error[] = array('error', $this->getLanguageService()->getLL('group-exists'));
         } else {
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
             /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-            $tce = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
+            $tce = GeneralUtility::makeInstance(DataHandler::class);
             $tce->stripslashes_values=0;
 
             // Setting default values specific for the user:
-            $TCAdefaultOverride = $this->getBackendUser()->getTSConfigProp('TCAdefaults');
+            $TCAdefaultOverride = $this->getBackendUser()->getTSConfig()['TCAdefaults.'] ?? null;
             if (is_array($TCAdefaultOverride)) {
                 $tce->setDefaultsFromUserTS($TCAdefaultOverride);
             }
@@ -199,11 +210,17 @@ class GroupAdminController extends AbstractModuleController
             // Checking referer / executing
             $refInfo=parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
             $httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
-            if (($httpHost != $refInfo['host']) &&
-                ($this->vC != $this->getBackendUser()->veriCode()) &&
-                !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']
-            ) {
-                $tce->log('', 0, 0, 0, 1, "Referer host '%s' and server host '%s' did not match and veriCode was not valid either!", 1, array($refInfo['host'], $httpHost));
+            if (($httpHost != $refInfo['host']) && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
+                $tce->log(
+                    '',
+                    0,
+                    0,
+                    0,
+                    1,
+                    "Referer host '%s' and server host '%s' did not match and veriCode was not valid either!",
+                    1,
+                    [ $refInfo['host'], $httpHost ]
+                );
             } else {
                 // Perform the saving operation with TCEmain:
                 $tce->process_uploads($_FILES);
@@ -231,14 +248,7 @@ class GroupAdminController extends AbstractModuleController
                     }
                 }
 
-                // popView will not be invoked here,
-                // because the information from the submit button for save/view will be lost ....
-                // But does it matter if there is an error anyways?
-                $tce->printLogErrorMessages(
-                    isset($_POST['_saveandclosedok']) ?
-                    $this->retUrl :
-                    $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)
-                );
+                $tce->printLogErrorMessages();
             }
         }
 
@@ -352,7 +362,7 @@ class GroupAdminController extends AbstractModuleController
     {
         $content = '';
         /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
-        $dblist = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\RecordListUtility::class);
+        $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
         $dblist->script = GeneralUtility::getIndpEnv('SCRIPT_NAME');
         $dblist->alternateBgColors = true;
 
@@ -407,7 +417,7 @@ class GroupAdminController extends AbstractModuleController
 						Link for creating a new record:
 					-->
 		<div id="typo3-newRecordLink">
-		<a href="' . BackendUtility::getModuleUrl($this->moduleName, array('SET[function]' => 2)) . '">' .
+		<a href="' . GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($this->moduleName, array('SET[function]' => 2)) . '">' .
             $this->iconFactory->getIcon('actions-document-new', Icon::SIZE_SMALL)->render() . ' ' .
             $this->getLanguageService()->getLL('create-group') .
             '</a>';
@@ -438,12 +448,12 @@ class GroupAdminController extends AbstractModuleController
         $showColumn = 'hidden,title,db_mountpoints,file_mountpoints,subgroup,members,description,TSconfig';
 
         // get hideColumnGroup from TS and remove it from the showColumn
-        if ($this->getBackendUser()->userTS['tc_beuser.']['hideColumnGroup']) {
-            $removeColumnArray = explode(',', $this->getBackendUser()->userTS['tc_beuser.']['hideColumnGroup']);
+        if ($this->getBackendUser()->getTSConfig()['tc_beuser.']['hideColumnGroup']) {
+            $removeColumnArray = explode(',', $this->getBackendUser()->getTSConfig()['tc_beuser.']['hideColumnGroup']);
             $defaultColumnArray = explode(',', $showColumn);
 
             foreach ($removeColumnArray as $col) {
-                $defaultColumnArray = GeneralUtility::removeArrayEntryByValue($defaultColumnArray, $col);
+                $defaultColumnArray = ArrayUtility::removeArrayEntryByValue($defaultColumnArray, $col);
             }
 
             $showColumn = implode(',', $defaultColumnArray);
@@ -455,8 +465,8 @@ class GroupAdminController extends AbstractModuleController
         /** @var FormResultCompiler formResultCompiler */
         $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
 
-        /** @var \Dkd\TcBeuser\Utility\EditFormUtility editForm */
-        $this->editForm = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\EditFormUtility::class);
+        /** @var EditFormUtility editForm */
+        $this->editForm = GeneralUtility::makeInstance(EditFormUtility::class);
         $this->editForm->formResultCompiler = $formResultCompiler;
         $this->editForm->columnsOnly = $showColumn;
         $this->editForm->editconf = $this->editconf;
@@ -479,7 +489,7 @@ class GroupAdminController extends AbstractModuleController
                 $this->modTSconfig=array();
             }
 
-            $content = $formResultCompiler->JStop();
+            $content = $formResultCompiler->addCssFiles();
             $content .= $this->compileForm($editForm);
             $content .= $formResultCompiler->printNeededJSFunctions();
             $content .= '</form>';

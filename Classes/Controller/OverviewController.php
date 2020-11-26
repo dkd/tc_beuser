@@ -1,6 +1,10 @@
 <?php
 namespace Dkd\TcBeuser\Controller;
 
+use Dkd\TcBeuser\Utility\OverviewUtility;
+use TYPO3\CMS\Core\Utility\PathUtility;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
+use Dkd\TcBeuser\Utility\RecordListUtility;
 /***************************************************************
  *  Copyright notice
  *
@@ -86,7 +90,7 @@ class OverviewController extends AbstractModuleController
             $open     = GeneralUtility::_POST('open');
             $backPath = GeneralUtility::_POST('backPath');
 
-            $userView = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\OverviewUtility::class);
+            $userView = GeneralUtility::makeInstance(OverviewUtility::class);
             $content  = $userView->handleMethod($method, $groupId, $open, $backPath);
 
             echo $content;
@@ -109,18 +113,14 @@ class OverviewController extends AbstractModuleController
     }
 
     /**
-     * empty function, not needed
+     * Empty function, not needed
      */
-    public function processData()
-    {
-        // TODO: Implement processData() method.
-    }
+    public function processData() {}
 
     public function main()
     {
         $this->init();
 
-        //TODO more access check!?
         $access = $this->getBackendUser()->modAccess($this->MCONF, true);
 
         if ($access || $this->getBackendUser()->isAdmin()) {
@@ -148,10 +148,10 @@ class OverviewController extends AbstractModuleController
             // set JS for the AJAX call on overview
             // TODO: rewrite JS?
             $this->moduleTemplate->getPageRenderer()->addJsFile(
-                '../' . ExtensionManagementUtility::siteRelPath('tc_beuser') . 'Resources/Public/JavaScript/prototype.js'
+                '../' . PathUtility::stripPathSitePrefix(ExtensionManagementUtility::extPath('tc_beuser')) . 'Resources/Public/JavaScript/prototype.js'
             );
             $this->moduleTemplate->getPageRenderer()->addJsFile(
-                '../' . ExtensionManagementUtility::siteRelPath('tc_beuser') . 'Resources/Public/JavaScript/ajax.js'
+                '../' . PathUtility::stripPathSitePrefix(ExtensionManagementUtility::extPath('tc_beuser')) . 'Resources/Public/JavaScript/ajax.js'
             );
 
             $this->content = $this->moduleTemplate->header($title);
@@ -179,19 +179,23 @@ class OverviewController extends AbstractModuleController
 			}
 
 			var T3_BACKPATH = \''.$this->doc->backPath.'\';
-			var ajaxUrl = \'' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . '\';
-            ' .
+			var ajaxUrl = \'' .
+            GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($GLOBALS['MCONF']['name']) .
+            '\';' .
             $this->moduleTemplate->redirectUrls(GeneralUtility::linkThisScript())
         );
 
         $this->id = 0;
 
-        // update compareFlags
+        // Update compareFlags
         if (GeneralUtility::_GP('ads')) {
             $this->compareFlags = GeneralUtility::_GP('compareFlags');
             $this->getBackendUser()->pushModuleData('tcTools_Overview/index.php/compare', $this->compareFlags);
         } else {
-            $this->compareFlags = $this->getBackendUser()->getModuleData('tcTools_Overview/index.php/compare', 'ses');
+            $this->compareFlags = $this->getBackendUser()->getModuleData(
+                'tcTools_Overview/index.php/compare',
+                'ses'
+            );
         }
 
         // Setting return URL
@@ -216,19 +220,17 @@ class OverviewController extends AbstractModuleController
      */
     public function menuConfig()
     {
-        $this->MOD_MENU = array(
-            'function' => array(
-                '1' => $this->getLanguageService()->getLL('overview-groups'),
-                '2' => $this->getLanguageService()->getLL('overview-users'),
-            )
-        );
+        $this->MOD_MENU = ['function' => [
+            '1' => $this->getLanguageService()->getLL('overview-groups'),
+            '2' => $this->getLanguageService()->getLL('overview-users'),
+        ]];
 
-        $groupOnly = array();
+        $groupOnly = [];
         if ($this->MOD_SETTINGS['function'] == 1) { // groups
             $groupOnly['members'] = $this->getLanguageService()->getLL('showCol-members');
         }
 
-        $groupAndUser = array(
+        $groupAndUser = [
             'filemounts'        => $this->getLanguageService()->getLL('showCol-filemounts'),
             'webmounts'         => $this->getLanguageService()->getLL('showCol-webmounts'),
             'pagetypes'         => $this->getLanguageService()->getLL('showCol-pagetypes'),
@@ -243,7 +245,7 @@ class OverviewController extends AbstractModuleController
             'modules'           => $this->getLanguageService()->getLL('showCol-modules'),
             'tsconfig'          => $this->getLanguageService()->getLL('showCol-tsconfig'),
             'tsconfighl'        => $this->getLanguageService()->getLL('showCol-tsconfighl'),
-        );
+        ];
         $this->MOD_MENU['showCols'] = array_merge($groupOnly, $groupAndUser);
 
         parent::menuConfig();
@@ -291,8 +293,8 @@ class OverviewController extends AbstractModuleController
             );
             $this->table = 'be_users';
 
-            /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
-            $dblist = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\RecordListUtility::class);
+            /** @var RecordListUtility $dblist */
+            $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
             $dblist->backPath = $this->doc->backPath;
             $dblist->script = $this->MCONF['script'];
             $dblist->alternateBgColors = true;
@@ -302,7 +304,8 @@ class OverviewController extends AbstractModuleController
             $dblist->disableControls = array('edit' => true, 'hide' => true, 'delete' => true, 'import' => true);
 
             //Setup for analyze Icon
-            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:analyze', 1);
+            $dblist->analyzeLabel = $this->getLanguageService()
+                ->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:analyze');
             $dblist->analyzeParam = 'beUser';
 
             $dblist->start(0, $this->table, $this->pointer, $this->search_field);
@@ -322,6 +325,7 @@ class OverviewController extends AbstractModuleController
             );
 
             // searchbox toolbar
+            $searchBox = '';
             if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
                 $searchBox = $dblist->getSearchBox();
                 $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ToggleSearchToolbox');
@@ -350,8 +354,8 @@ class OverviewController extends AbstractModuleController
             $content .= $this->getColSelector();
             $content .= '<br />';
             $content .= $this->getUserViewHeader($userRecord);
-            /** @var \Dkd\TcBeuser\Utility\OverviewUtility $userView */
-            $userView = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\OverviewUtility::class);
+            /** @var OverviewUtility $userView */
+            $userView = GeneralUtility::makeInstance(OverviewUtility::class);
 
             //if there is member in the compareFlags array, remove it. There is no 'member' in user view
             unset($this->compareFlags['members']);
@@ -378,8 +382,8 @@ class OverviewController extends AbstractModuleController
             );
             $this->table = 'be_groups';
 
-            /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
-            $dblist = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\RecordListUtility::class);
+            /** @var RecordListUtility $dblist */
+            $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
             $dblist->backPath = $this->doc->backPath;
             $dblist->script = $this->MCONF['script'];
             $dblist->alternateBgColors = true;
@@ -396,7 +400,7 @@ class OverviewController extends AbstractModuleController
             );
 
             //Setup for analyze Icon
-            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:analyze', 1);
+            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:analyze');
             $dblist->analyzeParam = 'beGroup';
 
             $dblist->start(0, $this->table, $this->pointer, $this->search_field);
@@ -431,10 +435,9 @@ class OverviewController extends AbstractModuleController
             $groupRecord = BackendUtility::getRecord($this->table, $groupUid);
             $content .= $this->getColSelector();
             $content .= '<br />';
-//			$content .= $this->getUserViewHeader($groupRecord);
 
-            /** @var \Dkd\TcBeuser\Utility\OverviewUtility $userView */
-            $userView = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\OverviewUtility::class);
+            /** @var OverviewUtility $userView */
+            $userView = GeneralUtility::makeInstance(OverviewUtility::class);
 
             $content .= $userView->getTableGroup($groupRecord, $this->compareFlags);
         }
@@ -468,7 +471,6 @@ class OverviewController extends AbstractModuleController
     {
         $content = '';
 
-        $alttext = BackendUtility::getRecordIconAltText($userRecord, $this->table);
         $recTitle = htmlspecialchars(BackendUtility::getRecordTitle($this->table, $userRecord));
 
         // icon
@@ -526,7 +528,7 @@ class OverviewController extends AbstractModuleController
 
         // delete
         $icon = $this->iconFactory->getIcon('actions-edit-delete', Icon::SIZE_SMALL)->render();
-        $params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1&SET[function]=action&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
+        $params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1&SET[function]=action&prErr=1&uPT=1';
         $control .= '<a href="#" class="btn btn-default" ' .
             'onclick="' . htmlspecialchars('if (confirm(' .
                 GeneralUtility::quoteJSvalue(
@@ -536,12 +538,11 @@ class OverviewController extends AbstractModuleController
                         $userRecord['uid'],
                         ' (There are %s reference(s) to this record!)'
                     )
-                ) . ')) { return jumpToUrl(\'' . $this->actionOnClick($params, BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']), $this->MOD_SETTINGS) . '\'); } return false;'
+                ) . ')) { return jumpToUrl(\'' . $this->actionOnClick($params, GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($GLOBALS['MCONF']['name'])) . '\'); } return false;'
             ) . '">' .
             $icon .
             '</a>';
 
-        //TODO: only for admins or authorized user
         // swith user / switch user back
         if (!$userRecord[$hiddenField] &&
             ($this->getBackendUser()->user['tc_beuser_switch_to'] || $this->getBackendUser()->isAdmin())
@@ -579,7 +580,7 @@ class OverviewController extends AbstractModuleController
         } else {
             $returnUrl = GeneralUtility::quoteJSvalue(rawurlencode($requestUri ?: GeneralUtility::getIndpEnv('REQUEST_URI')));
         }
-        return 'window.location.href=' . GeneralUtility::quoteJSvalue(BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . '&returnUrl=') . '+' . $returnUrl . '; return false;';
+        return 'window.location.href=' . GeneralUtility::quoteJSvalue(GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $params . '&returnUrl=') . '+' . $returnUrl . '; return false;';
     }
 
 
@@ -594,7 +595,7 @@ class OverviewController extends AbstractModuleController
     public function actionOnClick($params, $requestURI = '')
     {
         $redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
-            '&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
-        return BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . $redirect;
+            '&prErr=1&uPT=1';
+        return GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $params . $redirect;
     }
 }

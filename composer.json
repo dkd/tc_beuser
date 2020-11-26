@@ -1,5 +1,4 @@
 {
-  "version" : "4.1.0-dev",
   "name": "dkd/tc-beuser",
   "type": "typo3-cms-extension",
   "description": "A collection of modules for administer BE users more comfortably",
@@ -14,17 +13,25 @@
     {
       "name": "Ivan Kartolo",
       "role": "Developer"
+    },
+    {
+      "name": "Jan Haffner",
+      "role": "Developer"
     }
   ],
   "license": [
-    "GPL-2.0+"
+    "GPL-2.0-or-later"
   ],
+  "extra": {
+    "typo3/cms": {
+      "extension-key": "extension_key"
+    }
+  },
   "support": {
     "issues": "https://github.com/dkd/tc_beuser"
   },
   "require": {
-    "php": ">=7.0.0",
-    "typo3/cms-core": ">=8.7,<9.0"
+    "typo3/cms-core": "^9.5"
   },
   "autoload": {
     "psr-4": {

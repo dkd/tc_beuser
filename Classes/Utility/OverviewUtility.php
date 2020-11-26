@@ -1,6 +1,7 @@
 <?php
 namespace Dkd\TcBeuser\Utility;
 
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 /***************************************************************
 *  Copyright notice
 *
@@ -27,12 +28,13 @@ namespace Dkd\TcBeuser\Utility;
 use TYPO3\CMS\Backend\Module\ModuleLoader;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Database\DatabaseConnection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Lang\LanguageService;
 use TYPO3\CMS\Backend\Domain\Repository\Module\BackendModuleRepository;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 
@@ -48,10 +50,11 @@ use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 class OverviewUtility
 {
     public $row;
+
     /**
      * @var array $availableMethods a list of methods, that are directly available ( ~ the interface)
      */
-    public $availableMethods = array(
+    public $availableMethods = [
         'renderColFilemounts',
         'renderColWebmounts',
         'renderColPagetypes',
@@ -67,7 +70,7 @@ class OverviewUtility
         'renderColTsconfig',
         'renderColTsconfighl',
         'renderColMembers',
-    );
+    ];
 
     public $backPath;
 
@@ -173,7 +176,7 @@ class OverviewUtility
     }
 
     /**
-     * only used for group view
+     * Only used for group view
      */
     public function getTableGroup($row, $setCols)
     {
@@ -208,7 +211,7 @@ class OverviewUtility
         $content = '';
         $content .= '
 			<thead>
-				<th class="t3-row-header" colspan="'.(count($setCols) + 2).'">&nbsp;</th>
+				<th class="t3-row-header" colspan="' . ($setCols ? count($setCols) : $setCols + 2) . '">&nbsp;</th>
 			</thead>'."\n";
 
         $content .= '<tr>'."\n";
@@ -218,7 +221,7 @@ class OverviewUtility
         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
         $content .= $this->wrapTd('ID:', 'class="c-headLine"');
 
-        if (count($setCols)) {
+        if ($setCols ? count($setCols) : $setCols) {
             foreach ($setCols as $col => $set) {
                 switch ($col) {
                     case 'members':
@@ -291,12 +294,12 @@ class OverviewUtility
 
     public function renderListRow($setCols, $treeRow, $class)
     {
-        $tCells = array();
+        $tCells = [];
 
-            // title:
+        // title:
         $rowTitle = $treeRow['HTML'].' '.htmlspecialchars($treeRow['row']['title']);
         $tCells[] = $this->wrapTd($rowTitle, 'nowrap="nowrap"', $class);
-            // id
+        // id
         $tCells[] = $this->wrapTd($treeRow['row']['uid'], 'nowrap="nowrap"', $class);
 
         if (count($setCols)) {
@@ -327,25 +330,36 @@ class OverviewUtility
         $this->table = 'sys_filemounts';
         $this->backPath = $backPath;
         if ($open) {
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'file_mountpoints',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('file_mountpoints')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
 
             $fileMounts = GeneralUtility::intExplode(',', $row['file_mountpoints']);
             $items = array();
             if (is_array($fileMounts) && $fileMounts[0] != 0) {
                 $content .= '<br />';
                 foreach ($fileMounts as $fm) {
-                    $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                        '*',
-                        $this->table,
-                        'uid=' . (int) $fm . BackendUtility::deleteClause($this->table)
-                    );
+                    $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                        ->getQueryBuilderForTable($this->table);
+                    $queryBuilder
+                        ->getRestrictions()
+                        ->removeAll()
+                        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+                    $res = $queryBuilder
+                        ->select('*')
+                        ->from($this->table)
+                        ->where($queryBuilder->expr()->eq('uid', (int) $fm))
+                        ->execute();
 
-                    if ($filemount = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
+                    if ($filemount = $res->fetch()) {
                         $fmIcon = $this->iconFactory->getIconForRecord(
                             $this->table,
                             $filemount,
@@ -380,22 +394,32 @@ class OverviewUtility
         $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'db_mountpoints',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('db_mountpoints')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
 
             $webMounts = GeneralUtility::intExplode(',', $row['db_mountpoints']);
             if (is_array($webMounts) && $webMounts[0] != 0) {
                 $content .= '<br />';
+                $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                    ->getQueryBuilderForTable('pages');
                 foreach ($webMounts as $wm) {
-                    $webmount = $this->getDatabaseConnection()->exec_SELECTgetRows(
-                        'uid, title, nav_hide, doktype, module',
-                        'pages',
-                        'uid = '.$wm
-                    );
+                    $webmount = $queryBuilder
+                        ->select('uid', 'title', 'nav_hide', 'doktype', 'module')
+                        ->from('pages')
+                        ->where($queryBuilder->expr()->eq(
+                                'uid',
+                                $queryBuilder->createNamedParameter($wm, \PDO::PARAM_INT)
+                            ))
+                        ->execute();
                     $webmount = $webmount[0];
 
                     $wmIcon = $this->iconFactory->getIconForRecord(
@@ -428,13 +452,17 @@ class OverviewUtility
 
         if ($open) {
             $content .= '<br />';
-
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'pagetypes_select',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('pagetypes_select')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
 
             $pageTypes = explode(',', $row['pagetypes_select']);
             reset($pageTypes);
@@ -472,12 +500,17 @@ class OverviewUtility
         if ($open) {
             $content .= '<br />';
 
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'tables_select',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('tables_select')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             $tablesSelect = explode(',', $row['tables_select']);
             reset($tablesSelect);
             while (list($kk, $vv) = each($tablesSelect)) {
@@ -514,13 +547,17 @@ class OverviewUtility
 
         if ($open) {
             $content .= '<br />';
-
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'tables_modify',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('tables_modify')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             $tablesModify = explode(',', $row['tables_modify']);
             reset($tablesModify);
             while (list($kk, $vv) = each($tablesModify)) {
@@ -556,13 +593,17 @@ class OverviewUtility
 
         if ($open) {
             $content .= '<br />';
-
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'non_exclude_fields',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('non_exclude_fields')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             $non_exclude_fields = explode(',', $row['non_exclude_fields']);
             reset($non_exclude_fields);
             while (list($kk, $vv) = each($non_exclude_fields)) {
@@ -594,26 +635,32 @@ class OverviewUtility
         $title    = $this->getLanguageService()->getLL('showCol-explicitallowdeny');
         $icon = $this->getTreeControlIcon($open);
 
-        $adLabel = array(
-            'ALLOW' => $this->getLanguageService()->sL('EXT:lang/Resources/Private/Language/locallang_core.xlf:labels.allow'),
-            'DENY' => $this->getLanguageService()->sL('EXT:lang/Resources/Private/Language/locallang_core.xlf:labels.deny'),
-        );
+        $adLabel = [
+            'ALLOW' => $this->getLanguageService()
+                ->sL('EXT:core/Resources/Private/Language/locallang_core.xlf:labels.allow'),
+            'DENY' => $this->getLanguageService()
+                ->sL('EXT:core/Resources/Private/Language/locallang_core.xlf:labels.deny'),
+        ];
 
-        $iconsPath = array(
+        $iconsPath = [
             'ALLOW' => $this->iconFactory->getIcon('status-status-permission-granted', Icon::SIZE_SMALL)->render(),
             'DENY' => $this->iconFactory->getIcon('status-status-permission-denied', Icon::SIZE_SMALL)->render(),
-        );
+        ];
 
         if ($open) {
             $content .= '<br />';
             $data = '';
-
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'explicit_allowdeny',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('explicit_allowdeny')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             if (!empty($row['explicit_allowdeny'])) {
                 $explicit_allowdeny = explode(',', $row['explicit_allowdeny']);
                 reset($explicit_allowdeny);
@@ -651,12 +698,17 @@ class OverviewUtility
 
         if ($open) {
             $content .= '<br />';
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'allowed_languages',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('allowed_languages')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             $allowed_languages = explode(',', $row['allowed_languages']);
             reset($allowed_languages);
 
@@ -693,12 +745,17 @@ class OverviewUtility
 
         if ($open) {
             $content .= '<br />';
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'workspace_perms',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('workspace_perms')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             $permissions = floatval($row['workspace_perms']);
             $items = $GLOBALS['TCA']['be_groups']['columns']['workspace_perms']['config']['items'];
             $check = array();
@@ -727,14 +784,19 @@ class OverviewUtility
 
         if ($open) {
             $content .= '<br />';
-            $userAuthGroup = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Authentication\BackendUserAuthentication::class);
+            $userAuthGroup = GeneralUtility::makeInstance(BackendUserAuthentication::class);
                 //get workspace perms
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'workspace_perms',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('workspace_perms')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             $userAuthGroup->groupData['workspace_perms'] = $row['workspace_perms'];
 
                 // Create accessible workspace arrays:
@@ -745,15 +807,20 @@ class OverviewUtility
             if ($userAuthGroup->checkWorkspace(array('uid' => -1))) {
                 $options[-1] = '-1: [Default Draft]';
             }
-                // Add custom workspaces (selecting all, filtering by BE_USER check):
-            $workspaces = $this->getDatabaseConnection()->exec_SELECTgetRows(
-                'uid,title,adminusers,members,reviewers,db_mountpoints',
-                'sys_workspace',
-                'pid=0' . BackendUtility::deleteClause('sys_workspace'),
-                '',
-                'title'
-            );
-            if (count($workspaces)) {
+            // Add custom workspaces (selecting all, filtering by BE_USER check):
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('sys_workspace');
+            $queryBuilder
+                ->getRestrictions()
+                ->removeAll()
+                ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            $workspaces = $queryBuilder
+                ->select('uid', 'title', 'adminusers', 'members', 'reviewers', 'db_mountpoints')
+                ->from('sys_workspace')
+                ->where($queryBuilder->expr()->eq('pid', 0))
+                ->orderBy('title')
+                ->execute();
+            if ($workspaces) {
                 foreach ($workspaces as $rec) {
                     if ($userAuthGroup->checkWorkspace($rec)) {
                         $options[$rec['uid']] = $rec['uid'].': '.$rec['title'];
@@ -790,12 +857,17 @@ class OverviewUtility
         $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'description',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_groups');
+            $res = $queryBuilder
+                ->select('description')
+                ->from('be_groups')
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             $content .= '<br />';
 
             $content .= '<pre>'.$row['description'].'</pre><br />'."\n";
@@ -828,12 +900,17 @@ class OverviewUtility
 
             $table = 'be_groups';
             // get selected module from the table (be_users or be_groups)
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                '*',
-                $table,
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable($table);
+            $res = $queryBuilder
+                ->select('*')
+                ->from($table)
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
 
 
             //var_dump($allMods);
@@ -878,12 +955,18 @@ class OverviewUtility
         $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'TSconfig',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $table = 'be_groups';
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable($table);
+            $res = $queryBuilder
+                ->select('TSconfig')
+                ->from($table)
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
 
             $TSconfig = GeneralUtility::intExplode(',', $row['TSconfig']);
             $content .= '<pre>'.$row['TSconfig'].'</pre><br />'."\n";
@@ -907,12 +990,18 @@ class OverviewUtility
 
         if ($open) {
             $tsparser = GeneralUtility::makeInstance(TypoScriptParser::class);
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'TSconfig',
-                'be_groups',
-                'uid = '.$groupId
-            );
-            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $table = 'be_groups';
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable($table);
+            $res = $queryBuilder
+                ->select('TSconfig')
+                ->from($table)
+                ->where($queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($groupId, \PDO::PARAM_INT))
+                )
+                ->execute();
+            $row = $res->fetch();
             $content = $tsparser->doSyntaxHighlight($row['TSconfig'], '', 1);
         }
 
@@ -937,18 +1026,20 @@ class OverviewUtility
         $this->table = 'be_users';
         if ($open) {
             $content .= '<br />';
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                '*',
-                'be_users',
-                'usergroup like ' .
-                $this->getDatabaseConnection()->fullQuoteStr(
-                    '%' . $groupId . '%',
-                    'be_users'
-                ) .
-                BackendUtility::deleteClause('be_users')
-            );
-            $members = array();
-            while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
+            $table = 'be_users';
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable($table);
+            $queryBuilder
+                ->getRestrictions()
+                ->removeAll()
+                ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            $res = $queryBuilder
+                ->select('*')
+                ->from($table)
+                ->where($queryBuilder->expr()->like('usergroup', '%' . $groupId . '%'))
+                ->execute();
+            $members = [];
+            while ($row = $res->fetch()) {
                 if (GeneralUtility::inList($row['usergroup'], $groupId)) {
                     //$members[] = $row;
                     $fmIcon = $this->iconFactory->getIconForRecord(
@@ -979,7 +1070,7 @@ class OverviewUtility
     public function editOnClick($params, $requestUri = '')
     {
         $retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
-        return "window.location.href='". BackendUtility::getModuleUrl('tcTools_UserAdmin') . $retUrl . $params . "'; return false;";
+        return "window.location.href='". GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $retUrl . $params . "'; return false;";
     }
 
     public function makeUserControl($userRecord)
@@ -1015,13 +1106,13 @@ class OverviewUtility
             if ($userRecord[$hiddenField]) {
                 $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
                 $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
-                    BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . $redirect . '\');') . '">' .
+                    GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $params . $redirect . '\');') . '">' .
                     $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render() .
                     '</a>' . chr(10);
             } else {
                 $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
                 $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
-                    BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . $redirect . '\');') . '">' .
+                    GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $params . $redirect . '\');') . '">' .
                     $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render() .
                     '</a>' . chr(10);
             }
@@ -1040,7 +1131,7 @@ class OverviewUtility
                         $userRecord['uid'],
                         ' (There are %s reference(s) to this record!)'
                     )
-                ) . ')) {jumpToUrl(\'' . BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . $redirect . '\');} return false;'
+                ) . ')) {jumpToUrl(\'' . GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $params . $redirect . '\');} return false;'
             ) . '">' .
                 $this->iconFactory->getIcon('actions-edit-delete', Icon::SIZE_SMALL)->render() .
             '</a>' . chr(10);
@@ -1075,7 +1166,7 @@ class OverviewUtility
 
             // Initialize tree object:
         /** @var \Dkd\TcBeuser\Utility\GroupTreeUtility $tree */
-        $tree = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\GroupTreeUtility::class);
+        $tree = GeneralUtility::makeInstance(GroupTreeUtility::class);
         $tree->init();
         $tree->expandAll = true;
 
@@ -1150,14 +1241,6 @@ class OverviewUtility
     protected function getBackendUser()
     {
         return $GLOBALS['BE_USER'];
-    }
-
-    /**
-     * @return DatabaseConnection
-     */
-    protected function getDatabaseConnection()
-    {
-        return $GLOBALS['TYPO3_DB'];
     }
 
     /**

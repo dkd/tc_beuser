@@ -1,6 +1,12 @@
 <?php
 namespace Dkd\TcBeuser\Controller;
 
+use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
+use Dkd\TcBeuser\Utility\EditFormUtility;
 /***************************************************************
  *  Copyright notice
  *
@@ -62,7 +68,7 @@ class UserAdminController extends AbstractModuleController
     public $permChecker;
 
     /**
-     * @var \Dkd\TcBeuser\Utility\EditFormUtility
+     * @var EditFormUtility
      */
     protected $editForm;
 
@@ -106,8 +112,8 @@ class UserAdminController extends AbstractModuleController
      */
     public function loadLocallang()
     {
-        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf');
-        $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
+        $this->getLanguageService()
+            ->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf');
     }
 
     /**
@@ -117,7 +123,6 @@ class UserAdminController extends AbstractModuleController
     {
         $this->init();
 
-        //TODO more access check!?
         $access = $this->getBackendUser()->modAccess($this->MCONF, true);
 
         if ($access || $this->getBackendUser()->isAdmin()) {
@@ -163,34 +168,47 @@ class UserAdminController extends AbstractModuleController
             $uid = array_keys($this->data[$table[0]]);
             $data = $this->data[$table[0]][$uid[0]];
             $fePID = intval($this->extConf['pidFE']);
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                '*',
-                'fe_users',
-                'pid = ' . $fePID .
-                BackendUtility::deleteClause('fe_users') .
-                ' AND username = ' .
-                $this->getDatabaseConnection()->fullQuoteStr($data['username'], 'fe_users')
-            );
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('fe_users');
+            $queryBuilder
+                ->getRestrictions()
+                ->removeAll()
+                ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            $res = $queryBuilder->select('*')
+                ->from('fe_users')
+                ->where(
+                    $queryBuilder->expr()->eq(
+                        'pid',
+                        $queryBuilder->createNamedParameter($fePID, \PDO::PARAM_INT)
+                    )
+                )
+                ->andWhere(
+                    $queryBuilder->expr()->eq(
+                        'username',
+                        $queryBuilder->createNamedParameter($data['username'])
+                    )
+                )
+                ->execute();
 
-            while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
+            while ($row = $res->fetch()) {
                 if ((trim($data['realName']) == trim($row['name'])) && (trim($data['email']) == trim($row['email']))) {
                     $notSync = 0;
                 } else {
-                        $notSync = 1;
+                    $notSync = 1;
                 }
             }
         }
 
         if ($notSync) {
-            $notSync ? $this->error[] = array('error',$this->getLanguageService()->getLL('data-sync')) : '';
+            $this->error[] = array('error',$this->getLanguageService()->getLL('data-sync'));
         } else {
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
-            /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-            $tce = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
+            /** @var DataHandler $tce */
+            $tce = GeneralUtility::makeInstance(DataHandler::class);
 
             // Setting default values specific for the user:
-            $TCAdefaultOverride = $this->getBackendUser()->getTSConfigProp('TCAdefaults');
+            $TCAdefaultOverride = $this->getBackendUser()->getTSConfig()['TCAdefaults.'] ?? null;
             if (is_array($TCAdefaultOverride)) {
                 $tce->setDefaultsFromUserTS($TCAdefaultOverride);
             }
@@ -218,7 +236,6 @@ class UserAdminController extends AbstractModuleController
             $refInfo = parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
             $httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
             if ($httpHost!=$refInfo['host'] &&
-                $this->vC!=$this->getBackendUser()->veriCode() &&
                 !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
                 $tce->log(
                     '',
@@ -257,14 +274,7 @@ class UserAdminController extends AbstractModuleController
                     }
                 }
 
-                $tce->printLogErrorMessages(
-                    isset($_POST['_saveandclosedok']) ?
-                    $this->retUrl :
-                    // popView will not be invoked here,
-                    // because the information from the submit button for save/view will be lost ....
-                    // But does it matter if there is an error anyways?
-                    $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)
-                );
+                $tce->printLogErrorMessages();
             }
         }
 
@@ -316,14 +326,14 @@ class UserAdminController extends AbstractModuleController
      */
     public function menuConfig()
     {
-        $this->MOD_MENU = array(
-            'function' => array(
+        $this->MOD_MENU = [
+            'function' => [
                 '1' => $this->getLanguageService()->getLL('list-users'),
                 '2'    => $this->getLanguageService()->getLL('create-user'),
                 '3' => $this->getLanguageService()->getLL('create-user-wizard'),
-            ),
+            ],
             'hideDeactivatedUsers' => '0'
-        );
+        ];
         parent::menuConfig();
     }
 
@@ -331,6 +341,7 @@ class UserAdminController extends AbstractModuleController
      * Generates the module content
      *
      * @return string
+     * @throws RouteNotFoundException
      */
     public function moduleContent()
     {
@@ -341,7 +352,7 @@ class UserAdminController extends AbstractModuleController
 
         switch ((string)$this->MOD_SETTINGS['function']) {
             case '1':
-                // list users
+                // List Users
                 BackendUtility::lockRecords();
 
                 // get buttons for the header
@@ -352,6 +363,7 @@ class UserAdminController extends AbstractModuleController
                 break;
 
             case '2':
+                // Create a new user
                 $data = GeneralUtility::_GP('data');
                 $dataKey = is_array($data) ? array_keys($data[$this->table]): array();
                 if (is_numeric($dataKey[0])) {
@@ -368,6 +380,7 @@ class UserAdminController extends AbstractModuleController
                 break;
 
             case '3':
+                // Import frontend user
                 //show list of fe users
                 $this->table = 'fe_users';
 
@@ -388,7 +401,8 @@ class UserAdminController extends AbstractModuleController
 
             case 'import':
                 $this->feID = GeneralUtility::_GP('feID');
-                $this->R_URI = $this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']);
+                $this->R_URI = $this->retUrl = GeneralUtility::makeInstance(UriBuilder::class)
+                    ->buildUriFromRoute($GLOBALS['MCONF']['name']);
                 $data = GeneralUtility::_GP('data');
                 $dataKey = is_array($data) ? array_keys($data[$this->table]): array();
                 if (is_numeric($dataKey[0])) {
@@ -415,14 +429,15 @@ class UserAdminController extends AbstractModuleController
      * Get user list in a table
      *
      * @return string
+     * @throws RouteNotFoundException
      */
     public function getUserList()
     {
         $content = '';
-        /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        /** @var RecordListUtility $dblist */
         $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
-        $dblist->permChecker = &$this->permChecker;
-        $dblist->script = BackendUtility::getModuleUrl($this->moduleName);
+        $dblist->permChecker = $this->permChecker;
+        $dblist->script = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($this->moduleName);
         $dblist->alternateBgColors = true;
         $dblist->userMainGroupOnly = true;
 
@@ -431,7 +446,7 @@ class UserAdminController extends AbstractModuleController
         $dblist->disableControls = array_merge($dblist->disableControls, array('import'=>true));
 
         //Setup for analyze Icon
-        $dblist->analyzeLabel = $this->getLanguageService()->getLL('analyze', 1);
+        $dblist->analyzeLabel = $this->getLanguageService()->getLL('analyze');
         $dblist->analyzeParam = 'beUser';
 
         if ($this->MOD_SETTINGS['hideDeactivatedUsers']) {
@@ -446,21 +461,23 @@ class UserAdminController extends AbstractModuleController
         } else {
             $pid = intval($this->extConf['pidFE']);
             $sortField = 'username';
-            $dblist->showFields = array('username','first_name', 'last_name', 'email');
-            $dblist->disableControls = array(
+            $dblist->showFields = ['username','first_name', 'last_name', 'email'];
+            $dblist->disableControls = [
                 'history' => true,
                 'new' => true,
                 'edit' => true,
                 'detail' => true,
                 'delete' => true,
                 'hide' => true
-            );
-            $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                'username',
-                'be_users',
-                '1 '.BackendUtility::deleteClause('be_users')
-            );
-            while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
+            ];
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('be_users');
+            $queryBuilder
+                ->getRestrictions()
+                ->removeAll()
+                ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            $res = $queryBuilder->select('username')->from('be_users')->execute();
+            while ($row = $res->fetch()) {
                 $exclude[] = "'".$row['username']."'";
             }
             $dblist->excludeBE = $exclude;
@@ -501,6 +518,7 @@ class UserAdminController extends AbstractModuleController
 
 
         // searchbox toolbar
+        $searchBox = '';
         if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
             $searchBox = $dblist->getSearchBox();
             $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ToggleSearchToolbox');
@@ -509,7 +527,11 @@ class UserAdminController extends AbstractModuleController
             $searchButton
                 ->setHref('#')
                 ->setClasses('t3js-toggle-search-toolbox')
-                ->setTitle($this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.title.searchIcon'))
+                ->setTitle(
+                    $this->getLanguageService()->sL(
+                        'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.title.searchIcon'
+                    )
+                )
                 ->setIcon($this->iconFactory->getIcon('actions-search', Icon::SIZE_SMALL));
             $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
                 $searchButton,
@@ -524,7 +546,7 @@ class UserAdminController extends AbstractModuleController
 				Link for creating a new record:
 			-->
 <div id="typo3-newRecordLink">
-<a href="' . BackendUtility::getModuleUrl($this->moduleName, array('SET[function]' => 2)) . '">' .
+<a href="' . GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($this->moduleName, array('SET[function]' => 2)) . '">' .
             $this->iconFactory->getIcon('actions-document-new', Icon::SIZE_SMALL)->render() .
             ' ' .
             $this->getLanguageService()->getLL('create-user') .
@@ -560,8 +582,8 @@ class UserAdminController extends AbstractModuleController
         $showColumn = 'disable,username,password,usergroup,realName,email,lang,name,first_name,last_name';
 
         // get hideColumnGroup from TS and remove it from the showColumn
-        if ($this->getBackendUser()->userTS['tc_beuser.']['hideColumnGroup']) {
-            $removeColumnArray = explode(',', $this->getBackendUser()->userTS['tc_beuser.']['hideColumnUser']);
+        if ($this->getBackendUser()->getTSConfig()['tc_beuser.']['hideColumnGroup']) {
+            $removeColumnArray = explode(',', $this->getBackendUser()->getTSConfig()['tc_beuser.']['hideColumnUser']);
             $defaultColumnArray = explode(',', $showColumn);
 
             foreach ($removeColumnArray as $col) {
@@ -577,8 +599,8 @@ class UserAdminController extends AbstractModuleController
         /** @var FormResultCompiler formResultCompiler */
         $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
 
-        /** @var \Dkd\TcBeuser\Utility\EditFormUtility editForm */
-        $this->editForm = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\EditFormUtility::class);
+        /** @var EditFormUtility editForm */
+        $this->editForm = GeneralUtility::makeInstance(EditFormUtility::class);
         $this->editForm->formResultCompiler = $formResultCompiler;
         $this->editForm->columnsOnly = $showColumn;
         $this->editForm->editconf = $this->editconf;
@@ -602,7 +624,7 @@ class UserAdminController extends AbstractModuleController
                 $this->modTSconfig=array();
             }
 
-            $content = $formResultCompiler->JStop();
+            $content = $formResultCompiler->addCssFiles();
             $content .= $this->compileForm($editForm);
             $content .= $formResultCompiler->printNeededJSFunctions();
             $content .= '</form>';

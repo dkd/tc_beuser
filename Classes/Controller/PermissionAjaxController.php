@@ -1,7 +1,7 @@
 <?php
 namespace Dkd\TcBeuser\Controller;
 
-/*
+/**
  * This file is part of the TYPO3 CMS project.
  *
  * It is free software; you can redistribute it and/or modify it under
@@ -17,9 +17,11 @@ namespace Dkd\TcBeuser\Controller;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
@@ -54,16 +56,16 @@ class PermissionAjaxController
         $this->conf['page'] = GeneralUtility::_POST('page');
         $this->conf['who'] = GeneralUtility::_POST('who');
         $this->conf['mode'] = GeneralUtility::_POST('mode');
-        $this->conf['bits'] = (int)GeneralUtility::_POST('bits');
-        $this->conf['permissions'] = (int)GeneralUtility::_POST('permissions');
+        $this->conf['bits'] = (int) GeneralUtility::_POST('bits');
+        $this->conf['permissions'] = (int) GeneralUtility::_POST('permissions');
         $this->conf['action'] = GeneralUtility::_POST('action');
-        $this->conf['ownerUid'] = (int)GeneralUtility::_POST('ownerUid');
+        $this->conf['ownerUid'] = (int) GeneralUtility::_POST('ownerUid');
         $this->conf['username'] = GeneralUtility::_POST('username');
-        $this->conf['groupUid'] = (int)GeneralUtility::_POST('groupUid');
+        $this->conf['groupUid'] = (int) GeneralUtility::_POST('groupUid');
         $this->conf['groupname'] = GeneralUtility::_POST('groupname');
-        $this->conf['editLockState'] = (int)GeneralUtility::_POST('editLockState');
-        $this->conf['new_owner_uid'] = (int)GeneralUtility::_POST('newOwnerUid');
-        $this->conf['new_group_uid'] = (int)GeneralUtility::_POST('newGroupUid');
+        $this->conf['editLockState'] = (int) GeneralUtility::_POST('editLockState');
+        $this->conf['new_owner_uid'] = (int) GeneralUtility::_POST('newOwnerUid');
+        $this->conf['new_group_uid'] = (int) GeneralUtility::_POST('newGroupUid');
     }
 
     /**
@@ -108,7 +110,9 @@ class PermissionAjaxController
                             $tce->start($data, array());
                             $tce->process_datamap();
 
-                            $view->setTemplatePathAndFilename($extPath . 'Resources/Private/Templates/PermissionAjax/ChangeOwner.html');
+                            $view->setTemplatePathAndFilename(
+                                $extPath . 'Resources/Private/Templates/PermissionAjax/ChangeOwner.html'
+                            );
                             $view->assign('userId', $userId);
                             $usernameArray = BackendUtility::getUserNames('username', ' AND uid = ' . $userId);
                             $view->assign('username', $usernameArray[$userId]['username']);
@@ -131,7 +135,9 @@ class PermissionAjaxController
                             $tce->start($data, array());
                             $tce->process_datamap();
 
-                            $view->setTemplatePathAndFilename($extPath . 'Resources/Private/Templates/PermissionAjax/ChangeGroup.html');
+                            $view->setTemplatePathAndFilename(
+                                $extPath . 'Resources/Private/Templates/PermissionAjax/ChangeGroup.html'
+                            );
                             $view->assign('groupId', $groupId);
                             $groupnameArray = BackendUtility::getGroupNames('title', ' AND uid = ' . $groupId);
                             $view->assign('groupname', $groupnameArray[$groupId]['title']);
@@ -190,16 +196,14 @@ class PermissionAjaxController
      */
     protected function checkPageOwner($pageUid)
     {
-        $allowed = false;
-
         $pageProperties = BackendUtility::getRecord('pages', $pageUid);
         if (($pageProperties['perms_userid'] == $this->getBackendUser()->user['uid']) ||
             $this->getBackendUser()->isAdmin()
         ) {
-            $allowed = true;
+            return true;
         }
 
-        return $allowed;
+        return false;
     }
 
     /**
@@ -212,7 +216,7 @@ class PermissionAjaxController
      */
     protected function renderUserSelector($page, $ownerUid, $username = '')
     {
-        $page = (int)$page;
+        $page = (int) $page;
         $ownerUid = (int)$ownerUid;
         // Get usernames
         $beUsers = BackendUtility::getUserNames();
@@ -351,7 +355,7 @@ class PermissionAjaxController
         $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         foreach ($permissions as $permission) {
             if ($int & $permission) {
-                $str .= '<span title="' . $GLOBALS['LANG']->getLL($permission, true)
+                $str .= '<span title="' . htmlspecialchars($GLOBALS['LANG']->getLL($permission))
                     . ' class="change-permission text-success"'
                     . ' data-page="' . (int)$pageId . '"'
                     . ' data-permissions="' . (int)$int . '"'
@@ -362,7 +366,7 @@ class PermissionAjaxController
                     . $iconFactory->getIcon('status-status-permission-granted', Icon::SIZE_SMALL)->render()
                     . '</span>';
             } else {
-                $str .= '<span title="' . $GLOBALS['LANG']->getLL($permission, true) . '"'
+                $str .= '<span title="' . htmlspecialchars($GLOBALS['LANG']->getLL($permission)) . '"'
                     . ' class="change-permission text-danger"'
                     . ' data-page="' . (int)$pageId . '"'
                     . ' data-permissions="' . (int)$int . '"'
@@ -378,7 +382,7 @@ class PermissionAjaxController
     }
 
     /**
-     * @return \TYPO3\CMS\Lang\LanguageService
+     * @return LanguageService
      */
     protected function getLanguageService()
     {
@@ -386,7 +390,7 @@ class PermissionAjaxController
     }
 
     /**
-     * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     * @return BackendUserAuthentication
      */
     protected function getBackendUser()
     {

@@ -23,6 +23,8 @@ namespace Dkd\TcBeuser\Utility;
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
+
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Tree\View\AbstractTreeView;
 
@@ -36,7 +38,7 @@ use TYPO3\CMS\Backend\Tree\View\AbstractTreeView;
  */
 class GroupTreeUtility extends AbstractTreeView
 {
-    public $fieldArray = array('uid', 'title');
+    public $fieldArray = ['uid', 'title'];
     public $defaultList = 'uid,title';
 
     /**
@@ -54,23 +56,28 @@ class GroupTreeUtility extends AbstractTreeView
     }
 
     /**
-     * recursivly builds a data array from a root $id which is than used to
+     * Recursively builds a data array from a root $id which is than used to
      * build a tree from it.
      *
-     * @param integer $id the root id from where to start
+     * @param int $id the root id from where to start
      * @return array hierarical array with tree data
      */
-    public function buildTree($id)
+    public function buildTree(int $id)
     {
-        $tree = array();
+        $tree = [];
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('be_groups');
+        $res = $queryBuilder->select('uid', 'title', 'subgroup')
+            ->from('be_groups')
+            ->where($queryBuilder->expr()->eq('deleted', 0))
+            ->andWhere($queryBuilder->expr()->eq(
+                'uid',
+                $queryBuilder->createNamedParameter($id, \PDO::PARAM_INT))
+            )
+            ->groupBy('uid')
+            ->execute();
 
-        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'uid, title, subgroup',
-            'be_groups',
-            'deleted = 0 AND uid = '.$id
-        );
-
-        $row         = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+        $row         = $res->fetch();
         $tree[$id]   = $row;
 
         if ($row['subgroup']) {

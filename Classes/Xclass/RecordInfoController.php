@@ -25,6 +25,7 @@ namespace Dkd\TcBeuser\Xclass;
  ***************************************************************/
 
 use Dkd\TcBeuser\Utility\TcBeuserUtility;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Controller\ContentElement\ElementInformationController;
 
 class RecordInfoController extends ElementInformationController
@@ -34,9 +35,9 @@ class RecordInfoController extends ElementInformationController
      * We set the current user as fake admin, so that
      * he get the permission to show the info.
      *
-     * @return void
+     * @param ServerRequestInterface|null $request
      */
-    public function init()
+    public function init(ServerRequestInterface $request = null): void
     {
         // fake admin
         if ($this->getBackendUser()->user['admin'] != 1) {

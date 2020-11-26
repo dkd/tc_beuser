@@ -1,6 +1,12 @@
 <?php
 namespace Dkd\TcBeuser\Controller;
 
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
+use Dkd\TcBeuser\Utility\RecordListUtility;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
+use Dkd\TcBeuser\Utility\EditFormUtility;
 /***************************************************************
  *  Copyright notice
  *
@@ -54,7 +60,7 @@ class FilemountsViewController extends AbstractModuleController
     public $jsCode;
     public $pageinfo;
 
-    /** @var  \Dkd\TcBeuser\Utility\EditFormUtility */
+    /** @var  EditFormUtility */
     public $editForm;
 
     /**
@@ -130,10 +136,11 @@ class FilemountsViewController extends AbstractModuleController
      */
     public function processData()
     {
+        $fakeAdmin = false;
         if ($this->getBackendUser()->user['admin'] != 1) {
             //make fake Admin
             TcBeuserUtility::fakeAdmin();
-            $fakeAdmin = 1;
+            $fakeAdmin = true;
         }
 
         // GPvars specifically for processing:
@@ -148,17 +155,24 @@ class FilemountsViewController extends AbstractModuleController
             $uid = array_keys($this->data[$table[0]]);
             if (!is_numeric($uid)) {
                 $this->data[$table[0]][$uid[0]]['base']=1;
-
                 //check the new path
-                $res = $this->getDatabaseConnection()->exec_SELECTquery(
-                    '*',
-                    $this->table,
-                    'path = ' . $this->getDatabaseConnection()->fullQuoteStr($this->data[$table[0]][$uid[0]]['path'], $this->table) .
-                    BackendUtility::deleteClause('sys_filemounts')
-                );
-
-                if ($this->getDatabaseConnection()->sql_num_rows($res) > 0) {
-                    while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
+                $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                    ->getQueryBuilderForTable($this->table);
+                $queryBuilder
+                    ->getRestrictions()
+                    ->removeAll()
+                    ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+                $res = $queryBuilder->select('*')
+                    ->from($this->table)
+                    ->where(
+                        $queryBuilder->expr()->eq(
+                            'path',
+                            $queryBuilder->createNamedParameter($this->data[$table[0]][$uid[0]]['path'])
+                        )
+                    )
+                    ->execute();
+                if ($res->rowCount() > 0) {
+                    while ($row = $res->fetch()) {
                         if ($row['uid'] != $uid[0]) {
                             $pathExists = true;
                         }
@@ -172,10 +186,10 @@ class FilemountsViewController extends AbstractModuleController
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
             /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-            $tce = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
+            $tce = GeneralUtility::makeInstance(DataHandler::class);
 
             // Setting default values specific for the user:
-            $TCAdefaultOverride = $this->getBackendUser()->getTSConfigProp('TCAdefaults');
+            $TCAdefaultOverride = $this->getBackendUser()->getTSConfig()['TCAdefaults.'] ?? null;
             if (is_array($TCAdefaultOverride)) {
                 $tce->setDefaultsFromUserTS($TCAdefaultOverride);
             }
@@ -202,9 +216,7 @@ class FilemountsViewController extends AbstractModuleController
             // Checking referer / executing
             $refInfo = parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
             $httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
-            if ($httpHost!=$refInfo['host'] &&
-                $this->vC!=$this->getBackendUser()->veriCode() &&
-                !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
+            if ($httpHost != $refInfo['host'] && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
                 $tce->log(
                     '',
                     0,
@@ -242,14 +254,7 @@ class FilemountsViewController extends AbstractModuleController
                     }
                 }
 
-                $tce->printLogErrorMessages(
-                    isset($_POST['_saveandclosedok_x']) ?
-                    $this->retUrl :
-                    // popView will not be invoked here,
-                    // because the information from the submit button for save/view will be lost ....
-                    // But does it matter if there is an error anyways?
-                    $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)
-                );
+                $tce->printLogErrorMessages();
             }
         }
 
@@ -352,7 +357,7 @@ class FilemountsViewController extends AbstractModuleController
         $content = '';
 
         /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
-        $dblist = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\RecordListUtility::class);
+        $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
         $dblist->script = GeneralUtility::linkThisScript();
         $dblist->alternateBgColors = true;
         $dblist->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
@@ -407,7 +412,7 @@ class FilemountsViewController extends AbstractModuleController
 						Link for creating a new record:
 					-->
 		<div id="typo3-newRecordLink">
-		<a href="' . BackendUtility::getModuleUrl($this->moduleName, array('SET[function]' => 2)) . '">' .
+		<a href="' . GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($this->moduleName, array('SET[function]' => 2)) . '">' .
             $this->iconFactory->getIcon('actions-document-new', Icon::SIZE_SMALL)->render() . ' ' .
             $this->getLanguageService()->getLL('create-filemount') .
             '</a>';
@@ -433,10 +438,10 @@ class FilemountsViewController extends AbstractModuleController
         $content = '';
 
         //show warning
-        $this->error[] = array(
+        $this->error[] = [
             'warning',
             $this->getLanguageService()->getLL('filemount-msg')
-        );
+        ];
 
         // Creating the editing form, wrap it with buttons, document selector etc.
         //show only these columns
@@ -445,8 +450,8 @@ class FilemountsViewController extends AbstractModuleController
         $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
 
         // Creating the editing form, wrap it with buttons, document selector etc.
-        /** @var \Dkd\TcBeuser\Utility\EditFormUtility editForm */
-        $this->editForm = GeneralUtility::makeInstance(\Dkd\TcBeuser\Utility\EditFormUtility::class);
+        /** @var EditFormUtility editForm */
+        $this->editForm = GeneralUtility::makeInstance(EditFormUtility::class);
         $this->editForm->formResultCompiler = $formResultCompiler;
         $this->editForm->columnsOnly = 'title,path';
         $this->editForm->editconf = $this->editconf;
@@ -454,13 +459,8 @@ class FilemountsViewController extends AbstractModuleController
         $this->editForm->inputData = $this->data;
 
         // set base to fileadmin
-        // Todo: make this configurable?
         if ($this->editconf[$this->table][0] == 'new') {
-            $this->editForm->overrideVals = array(
-                $this->table => array(
-                    'base' => '1'
-                )
-            );
+            $this->editForm->overrideVals = [ $this->table => [ 'base' => '1' ] ];
         }
 
         $editForm = $this->editForm->makeEditForm();
@@ -475,10 +475,10 @@ class FilemountsViewController extends AbstractModuleController
                 // Module configuration:
                 $this->modTSconfig = BackendUtility::getModTSconfig($this->viewId, 'mod.xMOD_alt_doc');
             } else {
-                $this->modTSconfig=array();
+                $this->modTSconfig = [];
             }
 
-            $content = $formResultCompiler->JStop();
+            $content = $formResultCompiler->addCssFiles();
             $content .= $this->compileForm($editForm);
             $content .= $formResultCompiler->printNeededJSFunctions();
             $content .= '</form>';

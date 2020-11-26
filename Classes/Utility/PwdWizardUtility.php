@@ -1,6 +1,7 @@
 <?php
 namespace Dkd\TcBeuser\Utility;
 
+use TYPO3\CMS\Core\Utility\PathUtility;
 /***************************************************************
 *  Copyright notice
 *
@@ -46,22 +47,22 @@ class PwdWizardUtility
         $output = '';
 
         // check if per User or PageTS enabled
-        if ($this->getBackendUser()->userTS['tc_beuser.']['passwordWizard']) {
+        if ($this->getBackendUser()->getTSConfig()['tc_beuser.']['passwordWizard']) {
             $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
-            $output .= '<script src="../' . ExtensionManagementUtility::siteRelPath('tc_beuser') .
+            $output .= '<script src="../' . PathUtility::stripPathSitePrefix(ExtensionManagementUtility::extPath('tc_beuser')) .
                 'Resources/Public/JavaScript/pwdgen.js" type="text/javascript"></script>';
             $onclick = 'pass = mkpass();' .
                 'document.'.$PA['formName'].'[\''.$PA['itemName'].'\'].value = pass;';
             $onclick .= 'top.TYPO3.Notification.success(\'' .
-                $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard-notif-header', 1) .
+                htmlspecialchars($GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard-notif-header')) .
                 '\', ' .
-                '\'' . $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard-notif-Text', 1) . '\'' .
+                '\'' . htmlspecialchars($GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard-notif-Text')) . '\'' .
                 ' + pass, 0);';
 
 
 
             $output .= '<a href="#" class="btn btn-default" onclick="'.htmlspecialchars($onclick).'" title="' .
-                $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard', 1) .'">'.
+                htmlspecialchars($GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard')) .'">'.
                 $iconFactory->getIcon('actions-move-left', Icon::SIZE_SMALL)->render() .
                 '</a>';
         }
