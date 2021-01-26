@@ -317,7 +317,7 @@ class TcBeuserUtility
             self::getBackendUser()->uc['startModuleOnFirstLogin'] = 'tctools_UserAdmin';
             self::getBackendUser()->writeUC();
 
-            $whereClause = 'ses_id=' . self::getDatabaseConnection()->fullQuoteStr(self::getBackendUser()->id, 'be_sessions');
+            $whereClause = 'ses_id=' . self::getDatabaseConnection()->fullQuoteStr(BackendUserAuthentication::hashSessionId(self::getBackendUser()->id), 'be_sessions');
             $whereClause .= ' AND ses_name=' . self::getDatabaseConnection()->fullQuoteStr(BackendUserAuthentication::getCookieName(), 'be_sessions');
             $whereClause .= ' AND ses_userid=' . (int)self::getBackendUser()->user['uid'];
 
