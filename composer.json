@@ -41,5 +41,8 @@
   "replace": {
     "tc_beuser": "self.version",
     "typo3-ter/tc-beuser": "self.version"
+  },
+  "scripts": {
+    "render-docs": "docker run --rm --name \"t3docsrun-sphinx\" -v $(pwd):/PROJECT:ro -v $(pwd)Documentation-GENERATED-temp:/RESULT  t3docs/render-documentation makehtml -c allow_unsafe 1;"
   }
 }
