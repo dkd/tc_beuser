@@ -1,54 +1,56 @@
-﻿
-
 .. ==================================================
 .. FOR YOUR INFORMATION
 .. --------------------------------------------------
 .. -*- coding: utf-8 -*- with BOM.
 
-.. ==================================================
-.. DEFINE SOME TEXTROLES
-.. --------------------------------------------------
-.. role::   underline
-.. role::   typoscript(code)
-.. role::   ts(typoscript)
-   :class:  typoscript
-.. role::   php(code)
+.. include:: Includes.txt
 
-===============
-EXT: tc\_beuser
-===============
+.. _start:
 
-:Author:
-      Ingo Renner, Ivan Kartolo, Thorsten Kahler
+=============================================================
+TC BE User Admin
+=============================================================
 
-:Created:
-      2002-11-01
+.. only:: html
 
-:Changed by:
-      Ivan Kartolo
+	:Classification:
+		tc_beuser
 
-:Changed:
-      2014-08-18
+	:Version:
+		|release|
 
-:Email:
-      typo3@dkd.de
+	:Language:
+		en
 
-Extension Key:  **tc\_beuser**
+	:Description:
+		A collection of modules for administer BE users more comfortably
 
-Copyright 2014, dkd Internet Service GmbH <typo3@dkd.de>
+	:Copyright:
+		since 2006
 
-This document is published under the Open Content License
+	:Author:
+		dkd Internet Service GmbH
 
-available from http://www.opencontent.org/opl.shtml
+	:Email:
+		typo3@dkd.de
 
-The content of this document is related to TYPO3
+	:License:
+		This document is published under the Open Content License
+		available from http://www.opencontent.org/opl.shtml
 
-\- a GNU/GPL CMS/Framework available from www.typo3.com
+	:Rendered:
+		|today|
+
+	The content of this document is related to TYPO3,
+	a GNU/GPL CMS/Framework available from `www.typo3.org <http://www.typo3.org/>`_.
+
+	**Table of Contents**
 
 .. toctree::
-   :maxdepth: 5
-   :titlesonly:
-   :glob:
 
-   Benutzerhandbuch/Index
-
+    UserAdmin/Index
+    GroupAdmin/Index
+    FilemountsView/Index
+    Overview/Index
+    UserTS-GroupTS/Index
+    Changelog/Index
