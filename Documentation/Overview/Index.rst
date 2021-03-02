@@ -14,58 +14,45 @@ Modul: Übersicht (Overview)
 Benutzer Übersicht
 ------------------
 
-Wählen Sie einen Benutzer. Sie können nun über die Auswahlboxen bestimmen welche Informationsspalten angezeigt werden
-sollen. Über das Icon mit „Pluszeichen“ können Sie Informationen aufklappen und mit dem „Minuszeichen“ wieder schließen.
+Klicken Sie bei einem Benutzer auf die Lupe. Sie können nun über die Auswahlboxen bestimmen welche Informationsspalten
+angezeigt werden sollen. Über das Plus-Icon können Sie Informationen aufklappen und mit dem Minus-Icon wieder schließen.
 
 .. image:: Images/manual_html_3e4db70.png
-   :height: 456
    :width: 653
-   :class: with-shadow
+   :class: with-shadow float-left
 
 Benutzer Funktionen
 -------------------
 
 .. image:: Images/manual_html_540a6c36.png
-   :height: 16
-   :width: 16
-   :class: with-shadow float-left
+   :width: 28
+   :class: float-left
 
-Stift Benuter bearbeiten
+Benutzer bearbeiten
 
 .. rst-class::  clear-both
 
 .. image:: Images/manual_html_7a9efbbe.png
-   :height: 16
-   :width: 16
-   :class: with-shadow float-left
+   :width: 28
+   :class: float-left
 
-Switch-User (switch to mode)
-
-.. rst-class::  clear-both
-
-.. image:: Images/manual_html_a9ccfc2.png
-   :height: 16
-   :width: 16
-   :class: with-shadow float-left
-
-Switch-User (switch back mode)
+Switch user to
 
 .. rst-class::  clear-both
 
 .. image:: Images/manual_html_6cebfc9b.png
-   :height: 459
    :width: 657
-   :class: with-shadow
+   :class: with-shadow float-left
 
 Gruppen Übersicht
 -----------------
 
-Wählen Sie oben rechts in der Auswahlbox „Gruppen Übersicht“. Wählen Sie einen Gruppe aus. Sie können nun über die
-Auswahlboxen bestimmen welche Informationsspalten angezeigt werden sollen.
+Wählen Sie oben in der Auswahlbox "Gruppen Übersicht". Klicken Sie bei einer Gruppe auf die Lupe. Sie können nun über
+die Auswahlboxen bestimmen welche Informationsspalten angezeigt werden sollen.
 
-Über das Icon mit „Pluszeichen“ können Sie Informationen aufklappen und mit dem „Minuszeichen“ wieder schließen.
+Über das Plus-Icon können Sie Informationen aufklappen und mit dem Minus-Icon wieder schließen.
 
 .. image:: Images/manual_html_m818b49a.png
    :height: 456
    :width: 654
-   :class: with-shadow
+   :class: with-shadow float-left
