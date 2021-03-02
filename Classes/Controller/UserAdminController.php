@@ -35,7 +35,9 @@ use Dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Form\FormResultCompiler;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Imaging\Icon;
+use TYPO3\CMS\Core\Session\Backend\Exception\SessionNotUpdatedException;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
@@ -117,7 +119,10 @@ class UserAdminController extends AbstractModuleController
     }
 
     /**
-     * the main call
+     * The main call
+     * @throws Exception
+     * @throws RouteNotFoundException
+     * @throws SessionNotUpdatedException
      */
     public function main()
     {
@@ -289,6 +294,9 @@ class UserAdminController extends AbstractModuleController
         }
     }
 
+    /**
+     * @throws SessionNotUpdatedException
+     */
     public function init()
     {
         parent::init();
@@ -341,9 +349,10 @@ class UserAdminController extends AbstractModuleController
      * Generates the module content
      *
      * @return string
+     * @throws Exception
      * @throws RouteNotFoundException
      */
-    public function moduleContent()
+    public function moduleContent() : string
     {
         $content = '';
         if (!empty($this->editconf)) {
@@ -430,8 +439,9 @@ class UserAdminController extends AbstractModuleController
      *
      * @return string
      * @throws RouteNotFoundException
+     * @throws Exception
      */
-    public function getUserList()
+    public function getUserList() : string
     {
         $content = '';
         /** @var RecordListUtility $dblist */
@@ -563,8 +573,10 @@ class UserAdminController extends AbstractModuleController
      * Show edit form
      *
      * @return string
+     * @throws Exception
+     * @throws \TYPO3\CMS\Backend\Form\Exception
      */
-    public function getUserEdit()
+    public function getUserEdit() : string
     {
 
         // lets fake admin

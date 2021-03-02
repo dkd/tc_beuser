@@ -75,7 +75,7 @@ class PermissionAjaxController
      * @param ResponseInterface $response
      * @return ResponseInterface
      */
-    public function dispatch(ServerRequestInterface $request, ResponseInterface $response)
+    public function dispatch(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $extPath = ExtensionManagementUtility::extPath('tc_beuser');
 
@@ -194,7 +194,7 @@ class PermissionAjaxController
      * @param int $pageUid the current page UID
      * @return bool
      */
-    protected function checkPageOwner($pageUid)
+    protected function checkPageOwner(int $pageUid) : bool
     {
         $pageProperties = BackendUtility::getRecord('pages', $pageUid);
         if (($pageProperties['perms_userid'] == $this->getBackendUser()->user['uid']) ||
@@ -214,7 +214,7 @@ class PermissionAjaxController
      * @param string $username The username to display
      * @return string The html select element
      */
-    protected function renderUserSelector($page, $ownerUid, $username = '')
+    protected function renderUserSelector(int $page, int $ownerUid, $username = '') : string
     {
         $page = (int) $page;
         $ownerUid = (int)$ownerUid;
@@ -226,13 +226,13 @@ class PermissionAjaxController
         foreach ($beUsers as $uid => $row) {
             $uid = (int)$uid;
             $selected = $uid === $ownerUid ? ' selected="selected"' : '';
-            $options .= '<option value="' . $uid . '"' . $selected . '>' . htmlspecialchars($row['username']) . '</option>';
+            $options .= '<option value="' . $uid . '" ' . $selected . ' >' . htmlspecialchars($row['username']) . '</option>';
         }
         $elementId = 'o_' . $page;
         $options = '<option value="0"></option>' . $options;
         $selector = '<select name="new_page_owner" id="new_page_owner">' . $options . '</select>';
         $saveButton = '<a class="saveowner btn btn-default" data-page="' . $page . '" data-owner="' . $ownerUid . '" data-element-id="' . $elementId . '" title="Change owner">' . $this->iconFactory->getIcon('actions-document-save', Icon::SIZE_SMALL)->render() . '</a>';
-        $cancelButton = '<a class="restoreowner btn btn-default" data-page="' . $page . '"  data-owner="' . $ownerUid . '" data-element-id="' . $elementId . '"' . (!empty($username) ? ' data-username="' . htmlspecialchars($username) . '"' : '') . ' title="Cancel">' . $this->iconFactory->getIcon('actions-document-close', Icon::SIZE_SMALL)->render() . '</a>';
+        $cancelButton = '<a class="restoreowner btn btn-default" data-page="' . $page . '"  data-owner="' . $ownerUid . '" data-element-id="' . $elementId . '" ' . (!empty($username) ? ' data-username="' . htmlspecialchars($username) . '"' : '') . ' title="Cancel">' . $this->iconFactory->getIcon('actions-document-close', Icon::SIZE_SMALL)->render() . '</a>';
         return '<span id="' . $elementId . '">'
             . $selector
             . '<span class="btn-group">'
@@ -250,7 +250,7 @@ class PermissionAjaxController
      * @param string $groupname The groupname to display
      * @return string The html select element
      */
-    protected function renderGroupSelector($page, $groupUid, $groupname = '')
+    protected function renderGroupSelector(int $page, int $groupUid, $groupname = '') : string
     {
         $page = (int)$page;
         $groupUid = (int)$groupUid;
@@ -270,7 +270,7 @@ class PermissionAjaxController
             } else {
                 $selected = '';
             }
-            $options .= '<option value="' . $uid . '"' . $selected . '>' . htmlspecialchars($row['title']) . '</option>';
+            $options .= '<option value="' . $uid . '" ' . $selected . ' >' . htmlspecialchars($row['title']) . '</option>';
         }
         // If the group was not set AND there is a group for the page
         if (!$userset && $groupUid) {
@@ -281,7 +281,7 @@ class PermissionAjaxController
         $options = '<option value="0"></option>' . $options;
         $selector = '<select name="new_page_group" id="new_page_group">' . $options . '</select>';
         $saveButton = '<a class="savegroup btn btn-default" data-page="' . $page . '" data-group="' . $groupUid . '" data-element-id="' . $elementId . '" title="Change group">' . $this->iconFactory->getIcon('actions-document-save', Icon::SIZE_SMALL)->render() . '</a>';
-        $cancelButton = '<a class="restoregroup btn btn-default" data-page="' . $page . '" data-group="' . $groupUid . '" data-element-id="' . $elementId . '"' . (!empty($groupname) ? ' data-groupname="' . htmlspecialchars($groupname) . '"' : '') . ' title="Cancel">' . $this->iconFactory->getIcon('actions-document-close', Icon::SIZE_SMALL)->render() . '</a>';
+        $cancelButton = '<a class="restoregroup btn btn-default" data-page="' . $page . '" data-group="' . $groupUid . '" data-element-id="' . $elementId . '" ' . (!empty($groupname) ? ' data-groupname="' . htmlspecialchars($groupname) . '" ' : '') . ' title="Cancel" >' . $this->iconFactory->getIcon('actions-document-close', Icon::SIZE_SMALL)->render() . '</a>';
         return '<span id="' . $elementId . '">'
             . $selector
             . '<span class="btn-group">'
@@ -300,7 +300,7 @@ class PermissionAjaxController
      * @param bool $validUser Must be set to FALSE, if the user has no name or is deleted
      * @return string The new group wrapped in HTML
      */
-    public static function renderOwnername($page, $ownerUid, $username, $validUser = true)
+    public static function renderOwnername(int $page, int $ownerUid, string $username, $validUser = true) : string
     {
         $elementId = 'o_' . $page;
         return '<span id="' . $elementId . '"><a class="ug_selector changeowner" data-page="' . $page . '" data-owner="' . $ownerUid . '" data-username="' . htmlspecialchars($username) . '">' . ($validUser ? ($username == '' ? '<span class=not_set>[' . $GLOBALS['LANG']->getLL('notSet') . ']</span>' : htmlspecialchars(GeneralUtility::fixed_lgd_cs($username, 20))) : '<span class=not_set title="' . htmlspecialchars(GeneralUtility::fixed_lgd_cs($username, 20)) . '">[' . $GLOBALS['LANG']->getLL('deleted') . ']</span>') . '</a></span>';
@@ -315,7 +315,7 @@ class PermissionAjaxController
      * @param bool $validGroup Must be set to FALSE, if the group has no name or is deleted
      * @return string The new group wrapped in HTML
      */
-    public static function renderGroupname($page, $groupUid, $groupname, $validGroup = true)
+    public static function renderGroupname(int $page, int $groupUid, string $groupname, $validGroup = true) : string
     {
         $elementId = 'g_' . $page;
         return '<span id="' . $elementId . '"><a class="ug_selector changegroup" data-page="' . $page . '" data-group="' . $groupUid . '" data-groupname="' . htmlspecialchars($groupname) . '">' . ($validGroup ? ($groupname == '' ? '<span class=not_set>[' . $GLOBALS['LANG']->getLL('notSet') . ']</span>' : htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupname, 20))) : '<span class=not_set title="' . htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupname, 20)) . '">[' . $GLOBALS['LANG']->getLL('deleted') . ']</span>') . '</a></span>';
@@ -328,9 +328,8 @@ class PermissionAjaxController
      * @param string $editLockState The state of the TYPO3 page (locked, unlocked)
      * @return string The new edit lock string wrapped in HTML
      */
-    protected function renderToggleEditLock($page, $editLockState)
+    protected function renderToggleEditLock(int $page, string $editLockState) : string
     {
-        $page = (int)$page;
         if ($editLockState === 1) {
             $ret = '<span id="el_' . $page . '"><a class="editlock btn btn-default" data-page="' . $page . '" data-lockstate="1" title="The page and all content is locked for editing by all non-Admin users.">' . $this->iconFactory->getIcon('actions-lock', Icon::SIZE_SMALL)->render() . '</a></span>';
         } else {
@@ -347,24 +346,23 @@ class PermissionAjaxController
      * @param string $who The scope (user, group or everybody)
      * @return string HTML marked up x/* indications.
      */
-    public static function renderPermissions($int, $pageId = 0, $who = 'user')
+    public static function renderPermissions(int $int, $pageId = 0, $who = 'user') : string
     {
+        $who = htmlspecialchars($who);
         $str = '';
         $permissions = array(1, 16, 2, 4, 8);
         /** @var IconFactory $iconFactory */
         $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         foreach ($permissions as $permission) {
             if ($int & $permission) {
-                $str .= '<span title="' . htmlspecialchars($GLOBALS['LANG']->getLL($permission))
-                    . ' class="change-permission text-success"'
-                    . ' data-page="' . (int)$pageId . '"'
-                    . ' data-permissions="' . (int)$int . '"'
-                    . ' data-mode="delete"'
-                    . ' data-who="' . htmlspecialchars($who) . '"'
-                    . ' data-bits="' . $permission . '"'
-                    . ' style="cursor:pointer">'
-                    . $iconFactory->getIcon('status-status-permission-granted', Icon::SIZE_SMALL)->render()
-                    . '</span>';
+                $title = htmlspecialchars($GLOBALS['LANG']->getLL($permission));
+                $icon = $iconFactory->getIcon('status-status-permission-granted', Icon::SIZE_SMALL)->render();
+                $str .= <<<EOL
+<span title="$title" class="change-permission text-success" data-page="$pageId" data-permissions="$int" data-mode="delete" data-who="$who" data-bits="$permission" style="cursor:pointer">
+    $icon
+</span>
+EOL;
+
             } else {
                 $str .= '<span title="' . htmlspecialchars($GLOBALS['LANG']->getLL($permission)) . '"'
                     . ' class="change-permission text-danger"'
@@ -384,7 +382,7 @@ class PermissionAjaxController
     /**
      * @return LanguageService
      */
-    protected function getLanguageService()
+    protected function getLanguageService() : LanguageService
     {
         return $GLOBALS['LANG'];
     }
@@ -392,7 +390,7 @@ class PermissionAjaxController
     /**
      * @return BackendUserAuthentication
      */
-    protected function getBackendUser()
+    protected function getBackendUser() : BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }

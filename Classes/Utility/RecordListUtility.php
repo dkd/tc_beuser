@@ -85,6 +85,7 @@ class RecordListUtility extends DatabaseRecordList
      * Finishes off with a stopper-gif
      *
      * @return void
+     * @throws Exception
      */
     public function generateList()
     {
@@ -156,7 +157,7 @@ class RecordListUtility extends DatabaseRecordList
      * @return string HTML table with the listing for the record.
      * @throws Exception
      */
-    public function getTable($table, $id, $rowList = '')
+    public function getTable($table, $id, $rowList = '') : string
     {
         $rowListArray = GeneralUtility::trimExplode(',', $rowList, true);
         // if no columns have been specified, show description (if configured)
@@ -520,7 +521,7 @@ class RecordListUtility extends DatabaseRecordList
                 // Record navigation is added to the beginning and end of the table if in single
                 // table mode
                 if ($this->table) {
-                    $rowOutput = $this->renderListNavigation('top') . $rowOutput . $this->renderListNavigation('bottom');
+                    $rowOutput = $this->renderListNavigation() . $rowOutput . $this->renderListNavigation('bottom');
                 } else {
                     // Show that there are more records than shown
                     if ($this->totalItems > $this->itemsLimitPerTable) {
@@ -583,7 +584,7 @@ class RecordListUtility extends DatabaseRecordList
      * @access private
      * @see getTable()
      */
-    public function renderListHeader($table, $currentIdList)
+    public function renderListHeader($table, $currentIdList) : string
     {
         $lang = $this->getLanguageService();
         // Init:
@@ -750,10 +751,11 @@ class RecordListUtility extends DatabaseRecordList
      * @param string $thumbsCol Table field (column) where (possible) thumbnails can be found
      * @param int $indent Indent from left.
      * @return string Table row for the element
+     * @throws RouteNotFoundException
      * @access private
      * @see getTable()
      */
-    public function renderListRow($table, $row, $cc, $titleCol, $thumbsCol, $indent = 0)
+    public function renderListRow($table, $row, $cc, $titleCol, $thumbsCol, $indent = 0) : string
     {
         if (!is_array($row)) {
             return '';
@@ -962,7 +964,7 @@ class RecordListUtility extends DatabaseRecordList
      * @return string HTML table with the control panel (unless disabled)
      * @throws RouteNotFoundException
      */
-    public function makeControl($table, $row)
+    public function makeControl($table, $row) : string
     {
         if ($this->dontShowClipControlPanels) {
             return '';
@@ -1019,7 +1021,7 @@ class RecordListUtility extends DatabaseRecordList
             $params = '&SET[function]=import&feID=' . $row['uid'];
             $importAction = '<a href="#" class="btn btn-default" onclick="' .
                 htmlspecialchars(self::editOnClick($params)) .
-                '" title="' . $this->getLanguageService()->getLL('import', 1) .'">' .
+                '" title="' . $this->getLanguageService()->getLL('import') .'">' .
                 $this->iconFactory->getIcon('actions-document-import-t3d', Icon::SIZE_SMALL)->render() .
                 '</a>';
             $this->addActionToCellGroup($cells, $importAction, 'import');
@@ -1152,7 +1154,7 @@ class RecordListUtility extends DatabaseRecordList
      * @param string $table
      * @return QueryBuilder
      */
-    protected function getQueryBuilderForTable($table)
+    protected function getQueryBuilderForTable(string $table) : QueryBuilder
     {
         return GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
     }

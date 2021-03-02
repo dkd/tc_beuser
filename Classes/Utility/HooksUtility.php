@@ -94,6 +94,11 @@ class HooksUtility
 
     /**
      * Put back 'members' field in be_groups TCA
+     * @param $status
+     * @param $table
+     * @param $id
+     * @param $fieldArray
+     * @param $tce
      */
     public function processDatamap_afterDatabaseOperations($status, $table, $id, $fieldArray, $tce)
     {

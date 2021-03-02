@@ -1,11 +1,13 @@
 <?php
 namespace Dkd\TcBeuser\Controller;
 
+use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use Dkd\TcBeuser\Utility\RecordListUtility;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use Dkd\TcBeuser\Utility\EditFormUtility;
 /***************************************************************
@@ -105,11 +107,16 @@ class GroupAdminController extends AbstractModuleController
         $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
     }
 
+    /**
+     * Main
+     *
+     * @throws RouteNotFoundException
+     * @throws Exception
+     */
     public function main()
     {
         $this->init();
 
-        //TODO more access check!?
         $access = $this->getBackendUser()->modAccess($this->MCONF, true);
 
         if ($access || $this->getBackendUser()->isAdmin()) {
@@ -134,6 +141,7 @@ class GroupAdminController extends AbstractModuleController
      */
     public function processData()
     {
+        $fakeAdmin = 0;
         if ($this->getBackendUser()->user['admin'] != 1) {
             //make fake Admin
             TcBeuserUtility::fakeAdmin();
@@ -178,7 +186,7 @@ class GroupAdminController extends AbstractModuleController
         } else {
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
-            /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
+            /** @var DataHandler $tce */
             $tce = GeneralUtility::makeInstance(DataHandler::class);
             $tce->stripslashes_values=0;
 
@@ -309,8 +317,11 @@ class GroupAdminController extends AbstractModuleController
     /**
      * Generates the module content
      *
+     * @return string
+     * @throws Exception
+     * @throws RouteNotFoundException
      */
-    public function moduleContent()
+    public function moduleContent() : string
     {
         $content = '';
 
@@ -358,10 +369,17 @@ class GroupAdminController extends AbstractModuleController
         return $content;
     }
 
-    public function getGroupList()
+    /**
+     * Get group list
+     *
+     * @return string
+     * @throws RouteNotFoundException
+     * @throws Exception
+     */
+    public function getGroupList() : string
     {
         $content = '';
-        /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        /** @var RecordListUtility $dblist */
         $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
         $dblist->script = GeneralUtility::getIndpEnv('SCRIPT_NAME');
         $dblist->alternateBgColors = true;
@@ -394,7 +412,8 @@ class GroupAdminController extends AbstractModuleController
 			'
         );
 
-        // searchbox toolbar
+        // Search box toolbar
+        $searchBox = '';
         if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
             $searchBox = $dblist->getSearchBox();
             $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ToggleSearchToolbox');
@@ -412,7 +431,7 @@ class GroupAdminController extends AbstractModuleController
             );
         }
 
-        // make new group link
+        // Make new group link
         $content .= '<!--
 						Link for creating a new record:
 					-->
@@ -429,8 +448,10 @@ class GroupAdminController extends AbstractModuleController
      * Create edit form
      *
      * @return string
+     * @throws Exception
+     * @throws \TYPO3\CMS\Backend\Form\Exception
      */
-    public function getGroupEdit()
+    public function getGroupEdit() : string
     {
 
         // lets fake admin

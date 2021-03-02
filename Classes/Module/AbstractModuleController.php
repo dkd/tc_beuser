@@ -2,6 +2,8 @@
 namespace Dkd\TcBeuser\Module;
 
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
+use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException;
+use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 /**
@@ -197,6 +199,7 @@ abstract class AbstractModuleController extends BaseScriptClass
 
     /**
      * Constructor
+     * @throws RouteNotFoundException
      */
     public function __construct()
     {
@@ -230,8 +233,11 @@ abstract class AbstractModuleController extends BaseScriptClass
      * @param ResponseInterface $response The reponse object sent to the backend
      *
      * @return ResponseInterface Return the response object
+     * @throws ExtensionConfigurationExtensionNotConfiguredException
+     * @throws ExtensionConfigurationPathDoesNotExistException
+     * @throws RouteNotFoundException
      */
-    public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
+    public function mainAction(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $this->loadLocallang();
 
@@ -260,6 +266,9 @@ abstract class AbstractModuleController extends BaseScriptClass
      * First initialization.
      *
      * @return void
+     * @throws RouteNotFoundException
+     * @throws ExtensionConfigurationExtensionNotConfiguredException
+     * @throws ExtensionConfigurationPathDoesNotExistException
      */
     public function preInit()
     {
@@ -307,14 +316,13 @@ abstract class AbstractModuleController extends BaseScriptClass
     /**
      * Detects, if a save command has been triggered.
      *
-     * @return boolean True, then save the document (data submitted)
+     * @return bool True, then save the document (data submitted)
      */
-    public function doProcessData()
+    public function doProcessData() : bool
     {
-        $out = $this->doSave ||
+        return $this->doSave ||
             isset($_POST['_savedok']) ||
             isset($_POST['_saveandclosedok']);
-        return $out;
     }
 
     /**
@@ -474,7 +482,7 @@ abstract class AbstractModuleController extends BaseScriptClass
      * @param string $editForm HTML form.
      * @return string Composite HTML
      */
-    public function compileForm($editForm)
+    public function compileForm(string $editForm) : string
     {
         $formContent = '
 			<!-- EDITING FORM -->
@@ -521,14 +529,16 @@ abstract class AbstractModuleController extends BaseScriptClass
      * @param string $key The option for look for. Default is checking if the saveDocNew button should be displayed.
      * @return string Return value fetched from USER TSconfig
      */
-    public function getNewIconMode($table, $key = 'saveDocNew')
+    public function getNewIconMode(string $table, $key = 'saveDocNew') : string
     {
         $TSconfig = $this->getBackendUser()->getTSConfig()['options.']['.'] ?? null;
-        $output = trim(isset($TSconfig['properties'][$table]) ? $TSconfig['properties'][$table] : $TSconfig['value']);
-        return $output;
+        return trim(isset($TSconfig['properties'][$table]) ? $TSconfig['properties'][$table] : $TSconfig['value']);
     }
 
 
+    /**
+     * @throws RouteNotFoundException
+     */
     public function getInlineJS()
     {
         // Add JavaScript functions to the page:

@@ -1,6 +1,7 @@
 <?php
 namespace Dkd\TcBeuser\Utility;
 
+use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 /***************************************************************
 *  Copyright notice
@@ -108,8 +109,8 @@ class OverviewUtility
 
 
     /**
-     * method dispatcher
-     * checks input vars and returns result of desired method if available
+     * Method dispatcher
+     * Checks input vars and returns result of desired method if available
      *
      * @param string $method defines what to return
      * @param int $groupId
@@ -117,7 +118,7 @@ class OverviewUtility
      * @param string $backPath
      * @return string
      */
-    public function handleMethod($method, $groupId, $open = false, $backPath = '')
+    public function handleMethod(string $method, int $groupId, $open = false, $backPath = '') : string
     {
 
         $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangOverview.xlf');
@@ -139,7 +140,7 @@ class OverviewUtility
     }
 
 
-    public function getTable($row, $setCols)
+    public function getTable($row, $setCols) : string
     {
         $content = '';
         $this->row = $row;
@@ -156,29 +157,33 @@ class OverviewUtility
                     $tCells = $this->renderListRow($setCols, $row, '');
 
                     $out .= '
-<tr class="db_list_normal">
-	'.implode('', $tCells).'
-</tr>';
+                        <tr class="db_list_normal">
+                            '.implode('', $tCells).'
+                        </tr>';
                     $cc++;
                 }
             } else {
                 return '<br /><br />' .
-                $this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:not-found') .
-                '<br />';
+                    $this->getLanguageService()->sL(
+                        'LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:not-found'
+                    ) .
+                    '<br />';
             }
         }
 
-        $content .= '<table border="0" cellpadding="0" cellspacing="0" class="table table-striped table-hover">
-					'.$out.'
-				</table>'."\n";
+        $content .= '<table class="table table-striped table-hover">'.$out.'</table>'."\n";
 
         return $content;
     }
 
     /**
      * Only used for group view
+     *
+     * @param $row
+     * @param $setCols
+     * @return string
      */
-    public function getTableGroup($row, $setCols)
+    public function getTableGroup($row, $setCols) : string
     {
         $content = '';
         $this->row = $row;
@@ -199,19 +204,18 @@ class OverviewUtility
             }
         }
 
-        $content .= '<table border="0" cellpadding="0" cellspacing="0" class="table table-striped table-hover">
+        $content .= '<table class="table table-striped table-hover">
 					'.$out.'
 				</table>'."\n";
 
         return $content;
     }
 
-    public function renderListHeader($setCols)
+    public function renderListHeader($setCols) : string
     {
-        $content = '';
-        $content .= '
+        $content = '
 			<thead>
-				<th class="t3-row-header" colspan="' . ($setCols ? count($setCols) : $setCols + 2) . '">&nbsp;</th>
+				<th class="t3-row-header" colspan="' . ($setCols ? count($setCols) + 2 : $setCols + 2) . '">&nbsp;</th>
 			</thead>'."\n";
 
         $content .= '<tr>'."\n";
@@ -220,7 +224,6 @@ class OverviewUtility
         $label = $this->getLanguageService()->getLL('showCol-groups');
         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
         $content .= $this->wrapTd('ID:', 'class="c-headLine"');
-
         if ($setCols ? count($setCols) : $setCols) {
             foreach ($setCols as $col => $set) {
                 switch ($col) {
@@ -292,17 +295,17 @@ class OverviewUtility
         return $content;
     }
 
-    public function renderListRow($setCols, $treeRow, $class)
+    public function renderListRow($setCols, $treeRow, $class) : array
     {
         $tCells = [];
 
-        // title:
+        // Title
         $rowTitle = $treeRow['HTML'].' '.htmlspecialchars($treeRow['row']['title']);
         $tCells[] = $this->wrapTd($rowTitle, 'nowrap="nowrap"', $class);
-        // id
+        // ID
         $tCells[] = $this->wrapTd($treeRow['row']['uid'], 'nowrap="nowrap"', $class);
 
-        if (count($setCols)) {
+        if ($setCols ? count($setCols) : $setCols) {
             foreach ($setCols as $colName => $set) {
                 $td = call_user_func(
                     array(
@@ -320,7 +323,16 @@ class OverviewUtility
         return $tCells;
     }
 
-    public function renderColFilemounts($groupId, $open = false, $backPath = '')
+    /**
+     * Render col filemounts
+     *
+     * @param $groupId
+     * @param false $open
+     * @param string $backPath
+     * @return string
+     * @throws RouteNotFoundException
+     */
+    public function renderColFilemounts($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -379,18 +391,18 @@ class OverviewUtility
         $toggle = '<span onclick="updateData(this, \'renderColFilemounts\', '
             .$groupId.', '
             .($open?'0':'1')
-            .');" style="cursor: pointer;">'
+            .')" style="cursor: pointer;">'
             . $icon . $title
             .'</span>';
 
         return $toggle . $content;
     }
 
-    public function renderColWebmounts($groupId, $open = false, $backPath = '')
+    public function renderColWebmounts($groupId, $open = false, $backPath = '') : string
     {
-        $content  = '';
+        $content = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $this->getLanguageService()->getLL('showCol-webmounts');
+        $title = $this->getLanguageService()->getLL('showCol-webmounts');
         $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
@@ -434,16 +446,16 @@ class OverviewUtility
         }
 
         $toggle = '<span onclick="updateData(this, \'renderColWebmounts\', '
-            .$groupId.', '
+            .$groupId . ', '
             .($open?'0':'1')
-            .');" style="cursor: pointer;">'
+            .')" style="cursor: pointer;">'
             . $icon . $title
             .'</span>';
 
         return $toggle . $content;
     }
 
-    public function renderColPagetypes($groupId, $open = false, $backPath = '')
+    public function renderColPagetypes($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -484,14 +496,14 @@ class OverviewUtility
         $toggle = '<span onclick="updateData(this, \'renderColPagetypes\', '
             .$groupId.', '
             .($open?'0':'1')
-            .');" style="cursor: pointer;">'
+            .')" style="cursor: pointer;">'
             . $icon . $title
             .'</span>';
 
         return $toggle . $content;
     }
 
-    public function renderColSelecttables($groupId, $open = false, $backPath = '')
+    public function renderColSelecttables($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-selecttables');
@@ -539,7 +551,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColModifytables($groupId, $open = false, $backPath = '')
+    public function renderColModifytables($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-modifytables');
@@ -585,7 +597,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColNonexcludefields($groupId, $open = false, $backPath = '')
+    public function renderColNonexcludefields($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-nonexcludefields');
@@ -628,7 +640,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColExplicitallowdeny($groupId, $open = false, $backPath = '')
+    public function renderColExplicitallowdeny($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -689,7 +701,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColLimittolanguages($groupId, $open = false, $backPath = '')
+    public function renderColLimittolanguages($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -737,7 +749,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColWorkspaceperms($groupId, $open = false, $backPath = '')
+    public function renderColWorkspaceperms($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-workspaceperms');
@@ -776,7 +788,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColWorkspacememship($groupId, $open = false, $backPath = '')
+    public function renderColWorkspacememship($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-workspacememship');
@@ -850,7 +862,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColDescription($groupId, $open = false, $backPath = '')
+    public function renderColDescription($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-description');
@@ -883,7 +895,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColModules($groupId, $open = false, $backPath = '')
+    public function renderColModules($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -893,13 +905,13 @@ class OverviewUtility
         if ($open) {
             $content .='<br />';
 
-            // get all modules
+            // Get all modules
             /** @var ModuleLoader $loadModules */
             $loadModules = GeneralUtility::makeInstance(ModuleLoader::class);
             $loadModules->load($GLOBALS['TBE_MODULES']);
 
             $table = 'be_groups';
-            // get selected module from the table (be_users or be_groups)
+            // Get selected module from the table (be_users or be_groups)
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
                 ->getQueryBuilderForTable($table);
             $res = $queryBuilder
@@ -912,9 +924,7 @@ class OverviewUtility
                 ->execute();
             $row = $res->fetch();
 
-
-            //var_dump($allMods);
-            $items = array();
+            $items = [];
             $backendModuleRepository = $this->getBackendModuleRepository();
             foreach ($loadModules->modListGroup as $id => $moduleName) {
                 if (GeneralUtility::inList($row['groupMods'], $moduleName)) {
@@ -948,7 +958,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColTsconfig($groupId, $open = false, $backPath = '')
+    public function renderColTsconfig($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-tsconfig');
@@ -982,7 +992,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColTsconfighl($groupId, $open = false, $backPath = '')
+    public function renderColTsconfighl($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-tsconfighl');
@@ -1015,7 +1025,16 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColMembers($groupId, $open = false, $backPath = '')
+    /**
+     * Render col members
+     *
+     * @param $groupId
+     * @param false $open
+     * @param string $backPath
+     * @return string
+     * @throws RouteNotFoundException
+     */
+    public function renderColMembers($groupId, $open = false, $backPath = '') : string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -1065,20 +1084,33 @@ class OverviewUtility
     }
 
     /**
-     * from mod4/index.php
+     * From mod4/index.php
+     *
+     * @param $params
+     * @param string $requestUri
+     * @return string
+     * @throws RouteNotFoundException
      */
-    public function editOnClick($params, $requestUri = '')
+    public function editOnClick($params, $requestUri = '') : string
     {
-        $retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
+        $retUrl = '&returnUrl=' .
+            ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
         return "window.location.href='". GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $retUrl . $params . "'; return false;";
     }
 
-    public function makeUserControl($userRecord)
+    /**
+     * Make user control
+     *
+     * @param $userRecord
+     * @return string
+     * @throws RouteNotFoundException
+     */
+    public function makeUserControl($userRecord) : string
     {
         $this->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
         $permsEdit = $this->calcPerms&16;
 
-        $control = '';
+        $control = '<div class="btn-group">';
 
         if ($this->table == 'be_users' && $permsEdit) {
             // edit
@@ -1102,7 +1134,7 @@ class OverviewUtility
             // hide/unhide
         $hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
         if ($permsEdit) {
-            $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
+            $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&prErr=1&uPT=1';
             if ($userRecord[$hiddenField]) {
                 $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
                 $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
@@ -1121,7 +1153,7 @@ class OverviewUtility
             // delete
         if ($permsEdit) {
             $params = '&cmd[' . $this->table . '][' . $userRecord['uid'] . '][delete]=1&SET[function]=action';
-            $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
+            $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&prErr=1&uPT=1';
             $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars(
                 'if (confirm(' .
                 GeneralUtility::quoteJSvalue(
@@ -1155,17 +1187,18 @@ class OverviewUtility
             }
         }
 
-        return $control;
+        return $control . '</div>';
     }
 
-    public function getGroupTree($groupId)
+    public function getGroupTree($groupId) : array
     {
+        $fakeAdmin = 0;
         $treeStartingPoint  = $groupId;
         $treeStartingRecord = BackendUtility::getRecord('be_groups', $treeStartingPoint);
         $depth = 10;
 
-            // Initialize tree object:
-        /** @var \Dkd\TcBeuser\Utility\GroupTreeUtility $tree */
+        // Initialize tree object:
+        /** @var GroupTreeUtility $tree */
         $tree = GeneralUtility::makeInstance(GroupTreeUtility::class);
         $tree->init();
         $tree->expandAll = true;
@@ -1182,7 +1215,7 @@ class OverviewUtility
         $tree->setDataFromArray($dataTree);
             // Create the tree from starting point:
         if ($depth > 0) {
-            // need to fake admin because getTree check if pid in webmount
+            // Need to fake admin because getTree check if PID in webmount
             if ($this->getBackendUser()->user['admin'] != 1) {
                 //make fake Admin
                 TcBeuserUtility::fakeAdmin();
@@ -1191,7 +1224,7 @@ class OverviewUtility
 
             $tree->getTree($treeStartingPoint, $depth);
 
-            // remove fake admin access
+            // Remove fake admin access
             if ($fakeAdmin) {
                 TcBeuserUtility::removeFakeAdmin();
             }
@@ -1200,7 +1233,7 @@ class OverviewUtility
         return $tree->tree;
     }
 
-    public function wrapTd($str, $tdParams = '', $class = '', $style = '')
+    public function wrapTd($str, $tdParams = '', $class = '', $style = '') : string
     {
         return "\t".'<td'
             .($tdParams ? ' '.$tdParams : '')
@@ -1214,31 +1247,31 @@ class OverviewUtility
      * @param string $status status of the tree
      * @return string
      */
-    protected function getTreeControlIcon($status)
+    protected function getTreeControlIcon(string $status) : string
     {
-        if ($status) {
-            $treeIconStatus = 'expand';
-        } else {
-            $treeIconStatus = 'collapse';
-        }
-
-        return $this->iconFactory->getIcon('apps-pagetree-' . $treeIconStatus, Icon::SIZE_SMALL)->render();
+        return
+            $this->iconFactory->getIcon(
+                'apps-pagetree-' . ($status ? 'expand' : 'collapse'),
+                Icon::SIZE_SMALL
+            )->render();
     }
 
     /**
      * Returns the Language Service
+     *
      * @return LanguageService
      */
-    protected function getLanguageService()
+    protected function getLanguageService() : LanguageService
     {
         return $GLOBALS['LANG'];
     }
 
     /**
      * Returns the Backend User
+     *
      * @return BackendUserAuthentication
      */
-    protected function getBackendUser()
+    protected function getBackendUser() : BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }
@@ -1248,7 +1281,7 @@ class OverviewUtility
      *
      * @return BackendModuleRepository
      */
-    protected function getBackendModuleRepository()
+    protected function getBackendModuleRepository() : BackendModuleRepository
     {
         return GeneralUtility::makeInstance(BackendModuleRepository::class);
     }
@@ -1258,7 +1291,7 @@ class OverviewUtility
      *
      * @return TranslationConfigurationProvider
      */
-    protected function getTranslationConfigurationProvider()
+    protected function getTranslationConfigurationProvider() : TranslationConfigurationProvider
     {
         return GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
     }
@@ -1270,7 +1303,7 @@ class OverviewUtility
      * @param array $row
      * @return bool
      */
-    protected function isRecordCurrentBackendUser($table, $row)
+    protected function isRecordCurrentBackendUser(string $table, array $row) : bool
     {
         return $table === 'be_users' && (int)$row['uid'] === $this->getBackendUser()->user['uid'];
     }

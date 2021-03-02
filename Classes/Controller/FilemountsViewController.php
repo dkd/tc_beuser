@@ -1,6 +1,7 @@
 <?php
 namespace Dkd\TcBeuser\Controller;
 
+use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -35,6 +36,7 @@ use Dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Form\FormResultCompiler;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
@@ -107,11 +109,17 @@ class FilemountsViewController extends AbstractModuleController
         $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
     }
 
+    /**
+     * Main
+     *
+     * @throws Exception
+     * @throws RouteNotFoundException
+     * @throws \TYPO3\CMS\Backend\Form\Exception
+     */
     public function main()
     {
         $this->init();
 
-        //TODO more access check!?
         $access = $this->getBackendUser()->modAccess($this->MCONF, true);
 
         if ($access || $this->getBackendUser()->isAdmin()) {
@@ -185,7 +193,7 @@ class FilemountsViewController extends AbstractModuleController
         } else {
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
-            /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
+            /** @var DataHandler $tce */
             $tce = GeneralUtility::makeInstance(DataHandler::class);
 
             // Setting default values specific for the user:
@@ -307,8 +315,11 @@ class FilemountsViewController extends AbstractModuleController
      * Generates the module content
      *
      * @return string
+     * @throws Exception
+     * @throws RouteNotFoundException
+     * @throws \TYPO3\CMS\Backend\Form\Exception
      */
-    public function moduleContent()
+    public function moduleContent() : string
     {
         $content = '';
 
@@ -352,11 +363,16 @@ class FilemountsViewController extends AbstractModuleController
         return $content;
     }
 
-    public function getFilemountList()
+    /**
+     * @return string
+     * @throws RouteNotFoundException
+     * @throws Exception
+     */
+    public function getFilemountList() : string
     {
         $content = '';
 
-        /** @var \Dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        /** @var RecordListUtility $dblist */
         $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
         $dblist->script = GeneralUtility::linkThisScript();
         $dblist->alternateBgColors = true;
@@ -424,9 +440,14 @@ class FilemountsViewController extends AbstractModuleController
         return $searchBox . $content;
     }
 
-    public function getFilemountEdit()
+    /**
+     * @return string
+     * @throws Exception
+     * @throws \TYPO3\CMS\Backend\Form\Exception
+     */
+    public function getFilemountEdit() : string
     {
-        // lets fake admin
+        // Lets fake admin
         $fakeAdmin = false;
 
         if ($this->getBackendUser()->user['admin'] != 1) {
@@ -444,7 +465,7 @@ class FilemountsViewController extends AbstractModuleController
         ];
 
         // Creating the editing form, wrap it with buttons, document selector etc.
-        //show only these columns
+        // show only these columns
 
         /** @var FormResultCompiler formResultCompiler */
         $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);

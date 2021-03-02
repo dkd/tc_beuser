@@ -24,6 +24,7 @@ namespace Dkd\TcBeuser\Utility;
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+use TYPO3\CMS\Backend\Form\Exception;
 use TYPO3\CMS\Backend\Form\Exception\AccessDeniedException;
 use TYPO3\CMS\Backend\Form\FormDataCompiler;
 use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
@@ -122,8 +123,12 @@ class EditFormUtility
     public $error;
 
 
-
-    public function makeEditForm()
+    /**
+     * @return string
+     * @throws Exception
+     * @throws \TYPO3\CMS\Core\Exception
+     */
+    public function makeEditForm() : string
     {
         // Initialize variables:
         $this->elementsData = array();

@@ -2,6 +2,9 @@
 namespace Dkd\TcBeuser\Controller;
 
 use Dkd\TcBeuser\Utility\OverviewUtility;
+use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
+use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Session\Backend\Exception\SessionNotUpdatedException;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use Dkd\TcBeuser\Utility\RecordListUtility;
@@ -79,14 +82,17 @@ class OverviewController extends AbstractModuleController
      * @param ResponseInterface $response The reponse object sent to the backend
      *
      * @return ResponseInterface Return the response object
+     * @throws Exception
+     * @throws RouteNotFoundException
+     * @throws SessionNotUpdatedException
      */
-    public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
+    public function mainAction(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $this->loadLocallang();
 
         if (GeneralUtility::_POST('ajaxCall')) {
             $method   = GeneralUtility::_POST('method');
-            $groupId  = GeneralUtility::_POST('groupId');
+            $groupId  = (int) GeneralUtility::_POST('groupId');
             $open     = GeneralUtility::_POST('open');
             $backPath = GeneralUtility::_POST('backPath');
 
@@ -99,7 +105,7 @@ class OverviewController extends AbstractModuleController
 
             $this->main();
 
-            // wrap content with form tag
+            // Wrap content with form tag
             $content= '<form action="' . htmlspecialchars($this->R_URI) . '" method="post" ' .
                 'enctype="' . $GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'] . '" ' .
                 'name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">' .
@@ -108,8 +114,8 @@ class OverviewController extends AbstractModuleController
 
             $this->moduleTemplate->setContent($content);
             $response->getBody()->write($this->moduleTemplate->renderContent());
-            return $response;
         }
+        return $response;
     }
 
     /**
@@ -117,6 +123,11 @@ class OverviewController extends AbstractModuleController
      */
     public function processData() {}
 
+    /**
+     * @throws RouteNotFoundException
+     * @throws SessionNotUpdatedException
+     * @throws Exception
+     */
     public function main()
     {
         $this->init();
@@ -137,6 +148,7 @@ class OverviewController extends AbstractModuleController
                 $this->MOD_SETTINGS['function'] = 1;
             }
 
+            $title = '';
             if ($this->MOD_SETTINGS['function'] == 1) {
                 $title = $this->getLanguageService()->getLL('overview-groups');
             } elseif ($this->MOD_SETTINGS['function'] == 2) {
@@ -145,13 +157,14 @@ class OverviewController extends AbstractModuleController
 
             $this->moduleTemplate->setTitle($title);
 
-            // set JS for the AJAX call on overview
-            // TODO: rewrite JS?
+            // Set JS for the AJAX call on overview
             $this->moduleTemplate->getPageRenderer()->addJsFile(
-                '../' . PathUtility::stripPathSitePrefix(ExtensionManagementUtility::extPath('tc_beuser')) . 'Resources/Public/JavaScript/prototype.js'
+                '../' . PathUtility::stripPathSitePrefix(ExtensionManagementUtility::extPath('tc_beuser'))
+                . 'Resources/Public/JavaScript/prototype.js'
             );
             $this->moduleTemplate->getPageRenderer()->addJsFile(
-                '../' . PathUtility::stripPathSitePrefix(ExtensionManagementUtility::extPath('tc_beuser')) . 'Resources/Public/JavaScript/ajax.js'
+                '../' . PathUtility::stripPathSitePrefix(ExtensionManagementUtility::extPath('tc_beuser'))
+                . 'Resources/Public/JavaScript/ajax.js'
             );
 
             $this->content = $this->moduleTemplate->header($title);
@@ -163,6 +176,10 @@ class OverviewController extends AbstractModuleController
         $this->getBackendUser()->user['admin'] = 0;
     }
 
+    /**
+     * @throws RouteNotFoundException
+     * @throws SessionNotUpdatedException
+     */
     public function init()
     {
         parent::init();
@@ -202,7 +219,7 @@ class OverviewController extends AbstractModuleController
         $this->returnUrl = GeneralUtility::_GP('returnUrl');
         $this->retUrl    = $this->returnUrl ? $this->returnUrl : 'dummy.php';
 
-        //init user / group
+        // Init user / group
         $beuser = GeneralUtility::_GET('beUser');
         if ($beuser) {
             $this->be_user = $beuser;
@@ -255,33 +272,39 @@ class OverviewController extends AbstractModuleController
      * Generates the module content
      *
      * @return string
+     * @throws Exception
      */
-    public function moduleContent()
+    public function moduleContent() : string
     {
-        $content = '';
-
         switch ((string)$this->MOD_SETTINGS['function']) {
             case '1':
-                // group view
-                $content .= $this->getGroupView($this->be_group);
+                // Group view
+                $content = $this->getGroupView($this->be_group);
                 $this->getButtons();
                 break;
             case '2':
-                // user view
-                $content .= $this->getUserView($this->be_user);
+                // User view
+                $content = $this->getUserView($this->be_user);
                 $this->getButtons();
                 break;
+            default:
+                $content = '';
         }
 
         return $content;
     }
 
-    public function getUserView($userUid)
+    /**
+     * @param $userUid
+     * @return string
+     * @throws Exception
+     */
+    public function getUserView($userUid) : string
     {
         $content = '';
 
         if ($this->be_user == 0) {
-            //warning - no user selected
+            // Warning - no user selected
             $content .= $this->getLanguageService()->getLL('select-user');
 
             $this->id = 0;
@@ -303,7 +326,7 @@ class OverviewController extends AbstractModuleController
             $dblist->showFields = array('username', 'realName', 'usergroup');
             $dblist->disableControls = array('edit' => true, 'hide' => true, 'delete' => true, 'import' => true);
 
-            //Setup for analyze Icon
+            // Setup for analyze Icon
             $dblist->analyzeLabel = $this->getLanguageService()
                 ->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:analyze');
             $dblist->analyzeParam = 'beUser';
@@ -324,7 +347,7 @@ class OverviewController extends AbstractModuleController
 			'
             );
 
-            // searchbox toolbar
+            // Searchbox toolbar
             $searchBox = '';
             if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
                 $searchBox = $dblist->getSearchBox();
@@ -335,7 +358,7 @@ class OverviewController extends AbstractModuleController
                     ->setHref('#')
                     ->setClasses('t3js-toggle-search-toolbox')
                     ->setTitle($this->getLanguageService()->getLL('search-user'))
-                    ->setIcon($this->iconFactory->getIcon('actions-search', Icon::SIZE_SMALL));
+                    ->setIcon($this->getIcon('actions-search'));
 
                 $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
                     $searchButton,
@@ -348,7 +371,7 @@ class OverviewController extends AbstractModuleController
             $content = $searchBox . $content;
 
         } else {
-            //real content
+            // Real content
             $this->table = 'be_users';
             $userRecord = BackendUtility::getRecord($this->table, $userUid);
             $content .= $this->getColSelector();
@@ -357,7 +380,7 @@ class OverviewController extends AbstractModuleController
             /** @var OverviewUtility $userView */
             $userView = GeneralUtility::makeInstance(OverviewUtility::class);
 
-            //if there is member in the compareFlags array, remove it. There is no 'member' in user view
+            // If there is member in the compareFlags array, remove it. There is no 'member' in user view
             unset($this->compareFlags['members']);
             $content .= $userView->getTable($userRecord, $this->compareFlags);
         }
@@ -365,12 +388,17 @@ class OverviewController extends AbstractModuleController
         return $content;
     }
 
-    public function getGroupView($groupUid)
+    /**
+     * @param $groupUid
+     * @return string
+     * @throws Exception
+     */
+    public function getGroupView($groupUid) : string
     {
         $content = '';
 
         if ($this->be_group == 0) {
-            //warning - no user selected
+            // Warning - no user selected
             $content .= $this->getLanguageService()->getLL('select-group');
 
             $this->id = 0;
@@ -399,17 +427,29 @@ class OverviewController extends AbstractModuleController
                 'import' => true
             );
 
-            //Setup for analyze Icon
-            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:analyze');
+            // Setup for analyze Icon
+            $dblist->analyzeLabel = $this->getLanguageService()->sL(
+                'LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:analyze'
+            );
             $dblist->analyzeParam = 'beGroup';
 
             $dblist->start(0, $this->table, $this->pointer, $this->search_field);
             $dblist->generateList();
 
-            $content .= $dblist->HTMLcode ? $dblist->HTMLcode : '<br />'.$this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:not-found').'<br />';
+            if ($dblist->HTMLcode) {
+                $content .= $dblist->HTMLcode;
+            } else {
+                $content .= '<br />'
+                    . $this->getLanguageService()->sL(
+                        'LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:not-found'
+                    ) . '<br />';
+            }
 
-            // searchbox toolbar
-            if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
+            // Searchbox toolbar
+            if (
+                !$this->modTSconfig['properties']['disableSearchBox']
+                && ($dblist->HTMLcode || !empty($dblist->searchString))
+            ) {
                 $searchBox = $dblist->getSearchBox();
                 $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ToggleSearchToolbox');
 
@@ -418,7 +458,7 @@ class OverviewController extends AbstractModuleController
                     ->setHref('#')
                     ->setClasses('t3js-toggle-search-toolbox')
                     ->setTitle($this->getLanguageService()->getLL('search-group'))
-                    ->setIcon($this->iconFactory->getIcon('actions-search', Icon::SIZE_SMALL));
+                    ->setIcon($this->getIcon('actions-search'));
 
                 $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
                     $searchButton,
@@ -430,7 +470,7 @@ class OverviewController extends AbstractModuleController
 
             $content = $searchBox . $content;
         } else {
-            //real content
+            // Real content
             $this->table = 'be_groups';
             $groupRecord = BackendUtility::getRecord($this->table, $groupUid);
             $content .= $this->getColSelector();
@@ -445,80 +485,85 @@ class OverviewController extends AbstractModuleController
         return $content;
     }
 
-    public function getColSelector()
+    public function getColSelector() : string
     {
         $content = '';
-        $i = 0;
 
         foreach ($this->MOD_MENU['showCols'] as $key => $label) {
-            $content .= '<span style="display: block; float: left; min-width: 200px;">'
-                .'<input type="checkbox" value="1" name="compareFlags['.$key.']" id="compareFlags['.$key.']"'.($this->compareFlags[$key]?' checked="checked"':'').' />'
-                .'&nbsp;'
-                . '<label for="compareFlags['.$key.']">' . $label . '</label>'
-                .'</span> '.chr(10);
-
-            $i++;
+            $checked = $this->compareFlags[$key] ? 'checked="checked"' : '';
+            $content .= <<<EOL
+<span style="display: block; float: left; min-width: 200px;">
+    <input type="checkbox" value="1" name="compareFlags[$key]"  id="compareFlags[$key]" $checked>&nbsp;
+    <label for="compareFlags[$key]">$label</label>
+</span>
+EOL;
         }
-
-        $content .= '<br style="clear: left;" /><br />';
-        $content .= '<input type="submit" name="ads" value="Update" />';
-        $content .= '<br />';
+        $content .= <<<EOL
+<br style="clear: left;" />
+<br />
+<input class="btn btn-default" type="submit" name="ads" value="Update" />
+<br />
+EOL;
 
         return $content;
     }
 
-    public function getUserViewHeader($userRecord)
+    /**
+     * @param $userRecord
+     * @return string
+     * @throws RouteNotFoundException
+     */
+    public function getUserViewHeader($userRecord) : string
     {
-        $content = '';
-
         $recTitle = htmlspecialchars(BackendUtility::getRecordTitle($this->table, $userRecord));
-
-        // icon
-        $iconImg = $this->iconFactory->getIconForRecord(
-            $this->table,
-            $userRecord,
-            Icon::SIZE_SMALL
-        )->render();
-
-        // controls
+        $iconImg = $this->iconFactory->getIconForRecord($this->table, $userRecord,Icon::SIZE_SMALL)->render();
         $control = $this->makeUserControl($userRecord);
 
-        $content .= $iconImg.' '.$recTitle.' '.$control;
-
-        return $content;
+        return $iconImg . ' ' . $recTitle . ' ' . $control . '<br><br>';
     }
 
-    public function makeUserControl($userRecord)
+    /**
+     * @param $userRecord
+     * @return string
+     * @throws RouteNotFoundException
+     */
+    public function makeUserControl($userRecord) : string
     {
+        $control = '<div class="btn-group">';
+        // Edit (Always shown)
+        $icon = $this->getIcon('actions-open')->render();
+        $onClick = htmlspecialchars($this->editOnClick(
+            '&edit[' . $this->table . '][' . $userRecord['uid'] . ']=edit&SET[function]=edit',
+            GeneralUtility::getIndpEnv('REQUEST_URI').'SET[function]=2'
+        ));
+        $control .= <<<EOL
+<a href="#" class="btn btn-default" onclick="$onClick">
+    $icon
+</a>
+EOL;
 
-        // edit
-        $icon = $this->iconFactory->getIcon('actions-open', Icon::SIZE_SMALL)->render();
-        $control = '<a href="#" class="btn btn-default" onclick="'.htmlspecialchars(
-            $this->editOnClick(
-                '&edit['.$this->table.']['.$userRecord['uid'].']=edit&SET[function]=edit',
-                GeneralUtility::getIndpEnv('REQUEST_URI').'SET[function]=2'
-            )
-        ).'">' . $icon . '</a>';
+        // Info (Always shown)
+        $icon = $this->getIcon('actions-document-info')->render();
+        $onClick = htmlspecialchars(
+            'top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;'
+        );
+        $control .= <<<EOL
+<a href="#" class="btn btn-default" onclick="$onClick">
+    $icon
+</a>
+EOL;
 
-        //info
-        // always show info
-        $icon = $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render();
-        $control .= '<a href="#" class="btn btn-default" ' .
-            'onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
-            $icon .
-            '</a>';
-
-        // hide/unhide
+        // Hide
         $hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
         if ($userRecord[$hiddenField]) {
-            $icon = $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render();
+            $icon = $this->getIcon('actions-edit-unhide')->render();
             $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
             $control .= '<a href="#" class="btn btn-default" ' .
                 'onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
                 $icon .
                 '</a>';
         } else {
-            $icon = $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render();
+            $icon = $this->getIcon('actions-edit-hide')->render();
             $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
             $control .= '<a href="#" class="btn btn-default" ' .
                 'onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
@@ -526,76 +571,101 @@ class OverviewController extends AbstractModuleController
                 '</a>';
         }
 
-        // delete
-        $icon = $this->iconFactory->getIcon('actions-edit-delete', Icon::SIZE_SMALL)->render();
+        // Delete
+        $icon = $this->getIcon('actions-edit-delete')->render();
         $params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1&SET[function]=action&prErr=1&uPT=1';
-        $control .= '<a href="#" class="btn btn-default" ' .
-            'onclick="' . htmlspecialchars('if (confirm(' .
+        $control .= '<a href="#" class="btn btn-default" ' . 'onclick="' .
+            htmlspecialchars('if (confirm(' .
                 GeneralUtility::quoteJSvalue(
-                    sprintf($this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:mess.delete'), $userRecord['username']) .
+                    sprintf(
+                        $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:mess.delete'),
+                        $userRecord['username']
+                    ) .
                     BackendUtility::referenceCount(
-                        $this->table,
-                        $userRecord['uid'],
-                        ' (There are %s reference(s) to this record!)'
+                        $this->table, $userRecord['uid'], ' (There are %s reference(s) to this record!)'
                     )
-                ) . ')) { return jumpToUrl(\'' . $this->actionOnClick($params, GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($GLOBALS['MCONF']['name'])) . '\'); } return false;'
-            ) . '">' .
-            $icon .
-            '</a>';
+                ) . ')) { return jumpToUrl(\'' .
+                $this->actionOnClick(
+                    $params,
+                    GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($GLOBALS['MCONF']['name'])
+                ) . '\'); } return false;'
+            ) . '">' . $icon . '</a>';
 
-        // swith user / switch user back
+        // Switch user
         if (!$userRecord[$hiddenField] &&
             ($this->getBackendUser()->user['tc_beuser_switch_to'] || $this->getBackendUser()->isAdmin())
         ) {
             if ($this->getBackendUser()->user['uid'] !== (int)$userRecord['uid']) {
-                // show switch button if user is not current user
-                $control .= '<a class="btn btn-default" ' .
-                    'href="' . GeneralUtility::linkThisScript(array('SwitchUser' => $userRecord['uid'])) . '" '.
-                    'target="_top" title="' . htmlspecialchars('Switch user to: ' . $userRecord['username']) . '" >' .
-                    $this->iconFactory->getIcon('actions-system-backend-user-switch', Icon::SIZE_SMALL)->render() .
-                    '</a>' .
-                    chr(10) . chr(10);
+                $href = GeneralUtility::linkThisScript(array('SwitchUser' => $userRecord['uid']));
+                $title = htmlspecialchars('Switch user to: ' . $userRecord['username']);
+                $icon = $this->getIcon('actions-system-backend-user-switch')->render();
+                $control .= <<<EOL
+<a class="btn btn-default" href="$href" target="_top" title="$title">
+    $icon
+</a>
+EOL;
             }
         }
 
-        return $control;
+        return $control . '</div>';
     }
 
     /**
      * ingo.renner@dkd.de: from BackendUtility, modified
      *
-     * Returns a JavaScript string (for an onClick handler) which will load the EditDocumentController script that shows the form for editing of the record(s) you have send as params.
-     * REMEMBER to always htmlspecialchar() content in href-properties to ampersands get converted to entities (XHTML requirement and XSS precaution)
+     * Returns a JavaScript string (for an onClick handler) which will load the EditDocumentController script that shows
+     * the form for editing of the record(s) you have send as params.
+     * REMEMBER to always htmlspecialchar() content in href-properties to ampersands get converted to entities (XHTML
+     * requirement and XSS precaution)
      *
-     * @param string $params Parameters sent along to EditDocumentController. This requires a much more details description which you must seek in Inside TYPO3s documentation of the FormEngine API. And example could be '&edit[pages][123] = edit' which will show edit form for page record 123.
+     * @param string $params Parameters sent along to EditDocumentController. This requires a much more details
+     * description which you must seek in Inside TYPO3s documentation of the FormEngine API. And example could be
+     * '&edit[pages][123] = edit' which will show edit form for page record 123.
      * @param string $requestUri An optional returnUrl you can set - automatically set to REQUEST_URI.
      *
      * @return string
+     * @throws RouteNotFoundException
      * @see: BackendUtility::editOnClick
      */
-    public static function editOnClick($params, $requestUri = '')
+    public static function editOnClick(string $params, string $requestUri = '') : string
     {
         if ($requestUri == -1) {
             $returnUrl = 'T3_THIS_LOCATION';
         } else {
-            $returnUrl = GeneralUtility::quoteJSvalue(rawurlencode($requestUri ?: GeneralUtility::getIndpEnv('REQUEST_URI')));
+            $returnUrl = GeneralUtility::quoteJSvalue(
+                rawurlencode($requestUri ?: GeneralUtility::getIndpEnv('REQUEST_URI'))
+            );
         }
-        return 'window.location.href=' . GeneralUtility::quoteJSvalue(GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $params . '&returnUrl=') . '+' . $returnUrl . '; return false;';
+        return 'window.location.href=' . GeneralUtility::quoteJSvalue(
+            GeneralUtility::makeInstance(UriBuilder::class)
+                    ->buildUriFromRoute('tcTools_UserAdmin') . $params . '&returnUrl='
+        ) . '+' . $returnUrl . '; return false;';
     }
 
 
     /**
-     * create link for the hide/unhide and delete icon.
+     * Create link for the hide/unhide and delete icon.
      * not using tce_db.php, because we need to manipulate user's permission
      *
      * @param string $params param with command (hide/unhide, delete) and records id
      * @param string $requestURI redirect link, after process the command
      * @return string jumpTo URL link with redirect
+     * @throws RouteNotFoundException
      */
-    public function actionOnClick($params, $requestURI = '')
+    public function actionOnClick(string $params, string $requestURI = '') : string
     {
-        $redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
-            '&prErr=1&uPT=1';
-        return GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin') . $params . $redirect;
+        $redirect = '&redirect='
+            . (
+                $requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode(
+                    $requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI')
+                )
+            ) . '&prErr=1&uPT=1';
+        return GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('tcTools_UserAdmin')
+            . $params . $redirect;
+    }
+
+    private function getIcon(string $identifier) : Icon
+    {
+        return $this->iconFactory->getIcon($identifier, Icon::SIZE_SMALL);
     }
 }

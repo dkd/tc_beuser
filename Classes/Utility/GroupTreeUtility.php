@@ -62,7 +62,7 @@ class GroupTreeUtility extends AbstractTreeView
      * @param int $id the root id from where to start
      * @return array hierarical array with tree data
      */
-    public function buildTree(int $id)
+    public function buildTree(int $id) : array
     {
         $tree = [];
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -97,10 +97,9 @@ class GroupTreeUtility extends AbstractTreeView
      * @param int $uid item id for which to select subitems (parent id)
      * @param int $depth Max depth (recursivity limit)
      * @param string $depthData HTML-code prefix for recursive calls.
-
      * @return int The count of items on the level
      */
-    public function getTree($uid, $depth = 999, $depthData = '')
+    public function getTree($uid, $depth = 999, $depthData = '') : int
     {
         // Buffer for id hierarchy is reset:
         $this->buffer_idH = [];
@@ -198,7 +197,7 @@ class GroupTreeUtility extends AbstractTreeView
      * @return string Link-wrapped input string
      * @access private
      */
-    public function PM_ATagWrap($icon, $cmd, $bMark = '', $isOpen = false)
+    public function PM_ATagWrap($icon, $cmd, $bMark = '', $isOpen = false) : string
     {
         if ($this->thisScript) {
             $anchor = $bMark ? '#' . $bMark : '';

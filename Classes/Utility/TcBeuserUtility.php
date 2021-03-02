@@ -27,6 +27,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Session\Backend\Exception\SessionNotUpdatedException;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
@@ -54,7 +55,7 @@ class TcBeuserUtility
         self::getBackendUser()->user['admin'] = 0;
     }
 
-    public static function getSubgroup($id)
+    public static function getSubgroup($id) : int
     {
         $table = 'be_groups';
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -81,11 +82,11 @@ class TcBeuserUtility
         }
     }
 
-    public static function allowWhereMember($TSconfig)
+    public static function allowWhereMember($TSconfig) : array
     {
         $userGroup = explode(',', self::getBackendUser()->user['usergroup']);
 
-        $allowWhereMember = array();
+        $allowWhereMember = [];
         foreach ($userGroup as $uid) {
             $groupID = $uid.','.self::getSubgroup($uid);
             if (strstr($groupID, ',')) {
@@ -100,7 +101,7 @@ class TcBeuserUtility
         return $allowWhereMember;
     }
 
-    public static function allowCreated()
+    public static function allowCreated() : array
     {
         $table = 'be_groups';
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -174,7 +175,7 @@ class TcBeuserUtility
         return $denyID;
     }
 
-    public static function showPrefixID($TSconfig, $mode)
+    public static function showPrefixID($TSconfig, $mode) : array
     {
         $showPrefixID = [];
         $table = 'be_groups';
@@ -213,7 +214,7 @@ class TcBeuserUtility
         return $showPrefixID;
     }
 
-    public static function showGroupID()
+    public static function showGroupID() : array
     {
         $TSconfig = [];
         if (self::getBackendUser()->getTSConfig()['tx_tcbeuser.']) {
@@ -281,6 +282,9 @@ class TcBeuserUtility
 
     /**
      * Manipulate the list of usergroups based on TS Config
+     * @param $param
+     * @param $pObj
+     * @return mixed
      */
     public static function getGroupsID(&$param, &$pObj)
     {
@@ -317,7 +321,7 @@ class TcBeuserUtility
     /**
      * Get all ID in a comma-list
      */
-    public static function getAllGroupsID()
+    public static function getAllGroupsID() : string
     {
         $table = 'be_groups';
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -341,8 +345,9 @@ class TcBeuserUtility
      *
      * @param string $switchUser BE-user record that will be switched to
      * @return void
+     * @throws SessionNotUpdatedException
      */
-    public static function switchUser($switchUser)
+    public static function switchUser(string $switchUser)
     {
         $targetUser = BackendUtility::getRecord('be_users', $switchUser);
         if (is_array($targetUser)) {
@@ -367,7 +372,7 @@ class TcBeuserUtility
      * Returns the Backend User
      * @return BackendUserAuthentication
      */
-    protected static function getBackendUser()
+    protected static function getBackendUser() : BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }
@@ -375,7 +380,7 @@ class TcBeuserUtility
     /**
      * @return SessionBackendInterface
      */
-    protected static function getSessionBackend()
+    protected static function getSessionBackend() : SessionBackendInterface
     {
         $loginType = self::getBackendUser()->getLoginType();
         return GeneralUtility::makeInstance(SessionManager::class)->getSessionBackend($loginType);

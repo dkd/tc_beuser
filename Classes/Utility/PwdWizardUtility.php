@@ -42,7 +42,7 @@ class PwdWizardUtility
 {
     public $backPath = '../../../../typo3/';
 
-    public function main($PA, $pObj)
+    public function main($PA, $pObj) : string
     {
         $output = '';
 
@@ -73,7 +73,7 @@ class PwdWizardUtility
      * Returns the Backend User
      * @return BackendUserAuthentication
      */
-    protected function getBackendUser()
+    protected function getBackendUser() : BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }
