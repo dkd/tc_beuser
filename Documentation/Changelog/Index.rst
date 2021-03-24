@@ -11,6 +11,11 @@
 ChangeLog
 =========
 
+2021-03-24 Jan Haffner <jan.haffner@dkd.de>
+-----------------------------------------------------
+
+* compatible with TYPO3 CMS 10.4 LTS only
+
 2018-03-28 Markus Friedrich <markus.friedrich@dkd.de>
 -----------------------------------------------------
 

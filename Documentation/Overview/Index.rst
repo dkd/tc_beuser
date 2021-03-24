@@ -15,10 +15,9 @@ Benutzer Übersicht
 ------------------
 
 Klicken Sie bei einem Benutzer auf die Lupe. Sie können nun über die Auswahlboxen bestimmen welche Informationsspalten
-angezeigt werden sollen. Über das Plus-Icon können Sie Informationen aufklappen und mit dem Minus-Icon wieder schließen.
+angezeigt werden sollen. Über das Pfeil-Icon können Sie Informationen aufklappen und wieder schließen.
 
 .. image:: Images/manual_html_3e4db70.png
-   :width: 653
    :class: with-shadow float-left
 
 Benutzer Funktionen
@@ -41,18 +40,14 @@ Switch user to
 .. rst-class::  clear-both
 
 .. image:: Images/manual_html_6cebfc9b.png
-   :width: 657
    :class: with-shadow float-left
 
 Gruppen Übersicht
 -----------------
 
 Wählen Sie oben in der Auswahlbox "Gruppen Übersicht". Klicken Sie bei einer Gruppe auf die Lupe. Sie können nun über
-die Auswahlboxen bestimmen welche Informationsspalten angezeigt werden sollen.
-
-Über das Plus-Icon können Sie Informationen aufklappen und mit dem Minus-Icon wieder schließen.
+die Auswahlboxen bestimmen welche Informationsspalten angezeigt werden sollen. Über das Pfeil-Icon können Sie
+Informationen aufklappen und wieder schließen.
 
 .. image:: Images/manual_html_m818b49a.png
-   :height: 456
-   :width: 654
    :class: with-shadow float-left
