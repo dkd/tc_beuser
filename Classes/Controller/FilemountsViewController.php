@@ -120,7 +120,7 @@ class FilemountsViewController extends AbstractModuleController
     {
         $this->init();
 
-        $access = $this->getBackendUser()->modAccess($this->MCONF, true);
+        $access = $this->getBackendUser()->modAccess($this->MCONF);
 
         if ($access || $this->getBackendUser()->isAdmin()) {
             // We need some uid in rootLine for the access check, so use first webmount
@@ -237,7 +237,6 @@ class FilemountsViewController extends AbstractModuleController
                 );
             } else {
                 // Perform the saving operation with TCEmain:
-                $tce->process_uploads($_FILES);
                 $tce->process_datamap();
                 $tce->process_cmdmap();
 
@@ -271,7 +270,7 @@ class FilemountsViewController extends AbstractModuleController
         }
 
         if (isset($_POST['_saveandclosedok']) || $this->closeDoc < 0) {
-            //If any new items has been save, the document is CLOSED because
+            // If any new items has been save, the document is CLOSED because
             // if not, we just get that element re-listed as new. And we don't want that!
             $this->closeDocument();
         }
@@ -319,7 +318,7 @@ class FilemountsViewController extends AbstractModuleController
      * @throws RouteNotFoundException
      * @throws \TYPO3\CMS\Backend\Form\Exception
      */
-    public function moduleContent() : string
+    public function moduleContent(): string
     {
         $content = '';
 
@@ -368,7 +367,7 @@ class FilemountsViewController extends AbstractModuleController
      * @throws RouteNotFoundException
      * @throws Exception
      */
-    public function getFilemountList() : string
+    public function getFilemountList(): string
     {
         $content = '';
 
@@ -399,10 +398,8 @@ class FilemountsViewController extends AbstractModuleController
         // Add JavaScript functions to the page:
         $this->moduleTemplate->addJavaScriptCode(
             'FilemountListInlineJS',
-            '
-				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
-				' . $dblist->CBfunctions() . '
-			'
+            '' . $this->moduleTemplate->redirectUrls($dblist->listURL())
+            //. $dblist->CBfunctions()
         );
 
         // searchbox toolbar
@@ -445,7 +442,7 @@ class FilemountsViewController extends AbstractModuleController
      * @throws Exception
      * @throws \TYPO3\CMS\Backend\Form\Exception
      */
-    public function getFilemountEdit() : string
+    public function getFilemountEdit(): string
     {
         // Lets fake admin
         $fakeAdmin = false;
@@ -494,7 +491,7 @@ class FilemountsViewController extends AbstractModuleController
 
             if ($this->viewId) {
                 // Module configuration:
-                $this->modTSconfig = BackendUtility::getModTSconfig($this->viewId, 'mod.xMOD_alt_doc');
+                $this->modTSconfig = BackendUtility::getPagesTSconfig($this->viewId)['mod.']['xMOD_alt_doc.'] ?? [];
             } else {
                 $this->modTSconfig = [];
             }

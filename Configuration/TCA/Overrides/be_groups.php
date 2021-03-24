@@ -25,4 +25,3 @@ $tempCol = [
         ]
     ]
 ];
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns('be_groups', $tempCol);

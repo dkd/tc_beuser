@@ -830,7 +830,7 @@ Ajax.PeriodicalUpdater.prototype = Object.extend(new Ajax.Base(), {
 document.getElementsByClassName = function(className, parentElement) {
   var children = ($(parentElement) || document.body).getElementsByTagName('*');
   return $A(children).inject([], function(elements, child) {
-    if (child.className.match(new RegExp("(^|\\s)" + className + "(\\s|$)")))
+    if (child.className === '[object String]' && child.className.match(new RegExp("(^|\\s)" + className + "(\\s|$)")))
       elements.push(child);
     return elements;
   });

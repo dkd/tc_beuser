@@ -339,7 +339,7 @@ class PermissionController extends ActionController
             );
         }
         // Get usernames and groupnames
-        $beGroupArray = BackendUtility::getListGroupNames('title,uid');
+        $beGroupArray = BackendUtility::getGroupNames();
         $beUserArray  = BackendUtility::getUserNames();
 
         // Owner selector
@@ -430,7 +430,7 @@ class PermissionController extends ActionController
      * @param int $pageUid the page UID to be checked
      * @return bool
      */
-    protected function checkUserPermission(int $pageUid) : bool
+    protected function checkUserPermission(int $pageUid): bool
     {
         $pageProperties = BackendUtility::getRecord('pages', $pageUid);
 
@@ -446,7 +446,7 @@ class PermissionController extends ActionController
     /**
      * @return BackendUserAuthentication
      */
-    protected function getBackendUser() : BackendUserAuthentication
+    protected function getBackendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }
@@ -456,7 +456,7 @@ class PermissionController extends ActionController
      *
      * @return array
      */
-    protected function getRecursiveSelectOptions() : array
+    protected function getRecursiveSelectOptions(): array
     {
         // Initialize tree object:
         $tree = GeneralUtility::makeInstance(PageTreeView::class);
@@ -505,7 +505,7 @@ class PermissionController extends ActionController
      *
      * @return LanguageService
      */
-    protected function getLanguageService() : LanguageService
+    protected function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];
     }

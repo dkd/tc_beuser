@@ -118,7 +118,7 @@ class OverviewUtility
      * @param string $backPath
      * @return string
      */
-    public function handleMethod(string $method, int $groupId, $open = false, $backPath = '') : string
+    public function handleMethod(string $method, int $groupId, $open = false, $backPath = ''): string
     {
 
         $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangOverview.xlf');
@@ -140,7 +140,7 @@ class OverviewUtility
     }
 
 
-    public function getTable($row, $setCols) : string
+    public function getTable($row, $setCols): string
     {
         $content = '';
         $this->row = $row;
@@ -171,7 +171,7 @@ class OverviewUtility
             }
         }
 
-        $content .= '<table class="table table-striped table-hover">'.$out.'</table>'."\n";
+        $content .= '<table class="table table-striped table-hover">' . $out . '</table>' . "\n";
 
         return $content;
     }
@@ -183,7 +183,7 @@ class OverviewUtility
      * @param $setCols
      * @return string
      */
-    public function getTableGroup($row, $setCols) : string
+    public function getTableGroup($row, $setCols): string
     {
         $content = '';
         $this->row = $row;
@@ -204,14 +204,12 @@ class OverviewUtility
             }
         }
 
-        $content .= '<table class="table table-striped table-hover">
-					'.$out.'
-				</table>'."\n";
+        $content .= '<table class="table table-striped table-hover">' . $out . '</table>' . "\n";
 
         return $content;
     }
 
-    public function renderListHeader($setCols) : string
+    public function renderListHeader($setCols): string
     {
         $content = '
 			<thead>
@@ -295,7 +293,7 @@ class OverviewUtility
         return $content;
     }
 
-    public function renderListRow($setCols, $treeRow, $class) : array
+    public function renderListRow($setCols, $treeRow, $class): array
     {
         $tCells = [];
 
@@ -332,7 +330,7 @@ class OverviewUtility
      * @return string
      * @throws RouteNotFoundException
      */
-    public function renderColFilemounts($groupId, $open = false, $backPath = '') : string
+    public function renderColFilemounts($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -398,7 +396,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColWebmounts($groupId, $open = false, $backPath = '') : string
+    public function renderColWebmounts($groupId, $open = false, $backPath = ''): string
     {
         $content = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -455,10 +453,9 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColPagetypes($groupId, $open = false, $backPath = '') : string
+    public function renderColPagetypes($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
         $title    = $this->getLanguageService()->getLL('showCol-pagetypes');
         $icon = $this->getTreeControlIcon($open);
 
@@ -503,7 +500,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColSelecttables($groupId, $open = false, $backPath = '') : string
+    public function renderColSelecttables($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-selecttables');
@@ -551,7 +548,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColModifytables($groupId, $open = false, $backPath = '') : string
+    public function renderColModifytables($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-modifytables');
@@ -597,7 +594,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColNonexcludefields($groupId, $open = false, $backPath = '') : string
+    public function renderColNonexcludefields($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-nonexcludefields');
@@ -640,7 +637,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColExplicitallowdeny($groupId, $open = false, $backPath = '') : string
+    public function renderColExplicitallowdeny($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -701,7 +698,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColLimittolanguages($groupId, $open = false, $backPath = '') : string
+    public function renderColLimittolanguages($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -749,7 +746,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColWorkspaceperms($groupId, $open = false, $backPath = '') : string
+    public function renderColWorkspaceperms($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-workspaceperms');
@@ -788,7 +785,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColWorkspacememship($groupId, $open = false, $backPath = '') : string
+    public function renderColWorkspacememship($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-workspacememship');
@@ -862,7 +859,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColDescription($groupId, $open = false, $backPath = '') : string
+    public function renderColDescription($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-description');
@@ -895,7 +892,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColModules($groupId, $open = false, $backPath = '') : string
+    public function renderColModules($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -958,7 +955,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColTsconfig($groupId, $open = false, $backPath = '') : string
+    public function renderColTsconfig($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-tsconfig');
@@ -992,7 +989,7 @@ class OverviewUtility
         return $toggle . $content;
     }
 
-    public function renderColTsconfighl($groupId, $open = false, $backPath = '') : string
+    public function renderColTsconfighl($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $title    = $this->getLanguageService()->getLL('showCol-tsconfighl');
@@ -1034,7 +1031,7 @@ class OverviewUtility
      * @return string
      * @throws RouteNotFoundException
      */
-    public function renderColMembers($groupId, $open = false, $backPath = '') : string
+    public function renderColMembers($groupId, $open = false, $backPath = ''): string
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
@@ -1055,19 +1052,27 @@ class OverviewUtility
             $res = $queryBuilder
                 ->select('*')
                 ->from($table)
-                ->where($queryBuilder->expr()->like('usergroup', '%' . $groupId . '%'))
+                ->where($queryBuilder->expr()->like('usergroup', "'%" . $groupId . "%'"))
                 ->execute();
             $members = [];
             while ($row = $res->fetch()) {
                 if (GeneralUtility::inList($row['usergroup'], $groupId)) {
-                    //$members[] = $row;
                     $fmIcon = $this->iconFactory->getIconForRecord(
                         'be_users',
                         $row,
                         Icon::SIZE_SMALL
                     )->render();
+                    $realName = $row['realName'];
+                    $userName = $row['username'];
+                    $userControls = $this->makeUserControl($row);
+                    $members[] = <<<EOL
+<tr>
+    <td>
+        $fmIcon $realName ($userName) <div class="btn-group">$userControls</div>
+    </td>
+</tr>
+EOL;
 
-                    $members[] = '<tr><td>'.$fmIcon.' '.$row['realName'].' ('.$row['username'].')</td><td>'.$this->makeUserControl($row).'</td></tr>';
                 }
             }
             $content .= '<table>'.implode('', $members).'</table>';
@@ -1091,7 +1096,7 @@ class OverviewUtility
      * @return string
      * @throws RouteNotFoundException
      */
-    public function editOnClick($params, $requestUri = '') : string
+    public function editOnClick($params, $requestUri = ''): string
     {
         $retUrl = '&returnUrl=' .
             ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
@@ -1105,7 +1110,7 @@ class OverviewUtility
      * @return string
      * @throws RouteNotFoundException
      */
-    public function makeUserControl($userRecord) : string
+    public function makeUserControl($userRecord): string
     {
         $this->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
         $permsEdit = $this->calcPerms&16;
@@ -1121,12 +1126,12 @@ class OverviewUtility
                 '</a>' . chr(10);
         }
 
-            //info
+        //info
         if ($this->getBackendUser()->check('tables_select', $this->table)
             && is_array(BackendUtility::readPageAccess($userRecord['pid'], $this->getBackendUser()->getPagePermsClause(1)))
         ) {
-            $onClick = 'top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;';
-            $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars($onClick) . '">' .
+            $dispatchArguments = htmlspecialchars($this->table . ',' . $userRecord['uid']);
+            $control .= '<a href="#" class="btn btn-default" data-dispatch-action="TYPO3.InfoWindow.showItem" data-dispatch-args-list="' . $dispatchArguments . '">' .
                 $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render() .
                 '</a>' . chr(10);
         }
@@ -1190,7 +1195,7 @@ class OverviewUtility
         return $control . '</div>';
     }
 
-    public function getGroupTree($groupId) : array
+    public function getGroupTree($groupId): array
     {
         $fakeAdmin = 0;
         $treeStartingPoint  = $groupId;
@@ -1210,10 +1215,10 @@ class OverviewUtility
             'HTML' => $HTML
         );
 
-        $dataTree = array();
+        $dataTree = [];
         $dataTree[$groupId] = $tree->buildTree($groupId);
         $tree->setDataFromArray($dataTree);
-            // Create the tree from starting point:
+        // Create the tree from starting point:
         if ($depth > 0) {
             // Need to fake admin because getTree check if PID in webmount
             if ($this->getBackendUser()->user['admin'] != 1) {
@@ -1233,7 +1238,7 @@ class OverviewUtility
         return $tree->tree;
     }
 
-    public function wrapTd($str, $tdParams = '', $class = '', $style = '') : string
+    public function wrapTd($str, $tdParams = '', $class = '', $style = ''): string
     {
         return "\t".'<td'
             .($tdParams ? ' '.$tdParams : '')
@@ -1247,7 +1252,7 @@ class OverviewUtility
      * @param string $status status of the tree
      * @return string
      */
-    protected function getTreeControlIcon(string $status) : string
+    protected function getTreeControlIcon(string $status): string
     {
         return
             $this->iconFactory->getIcon(
@@ -1261,7 +1266,7 @@ class OverviewUtility
      *
      * @return LanguageService
      */
-    protected function getLanguageService() : LanguageService
+    protected function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];
     }
@@ -1271,7 +1276,7 @@ class OverviewUtility
      *
      * @return BackendUserAuthentication
      */
-    protected function getBackendUser() : BackendUserAuthentication
+    protected function getBackendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }
@@ -1281,7 +1286,7 @@ class OverviewUtility
      *
      * @return BackendModuleRepository
      */
-    protected function getBackendModuleRepository() : BackendModuleRepository
+    protected function getBackendModuleRepository(): BackendModuleRepository
     {
         return GeneralUtility::makeInstance(BackendModuleRepository::class);
     }
@@ -1291,7 +1296,7 @@ class OverviewUtility
      *
      * @return TranslationConfigurationProvider
      */
-    protected function getTranslationConfigurationProvider() : TranslationConfigurationProvider
+    protected function getTranslationConfigurationProvider(): TranslationConfigurationProvider
     {
         return GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
     }
@@ -1303,7 +1308,7 @@ class OverviewUtility
      * @param array $row
      * @return bool
      */
-    protected function isRecordCurrentBackendUser(string $table, array $row) : bool
+    protected function isRecordCurrentBackendUser(string $table, array $row): bool
     {
         return $table === 'be_users' && (int)$row['uid'] === $this->getBackendUser()->user['uid'];
     }

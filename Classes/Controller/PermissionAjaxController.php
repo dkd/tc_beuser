@@ -75,7 +75,7 @@ class PermissionAjaxController
      * @param ResponseInterface $response
      * @return ResponseInterface
      */
-    public function dispatch(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
+    public function dispatch(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $extPath = ExtensionManagementUtility::extPath('tc_beuser');
 
@@ -194,7 +194,7 @@ class PermissionAjaxController
      * @param int $pageUid the current page UID
      * @return bool
      */
-    protected function checkPageOwner(int $pageUid) : bool
+    protected function checkPageOwner(int $pageUid): bool
     {
         $pageProperties = BackendUtility::getRecord('pages', $pageUid);
         if (($pageProperties['perms_userid'] == $this->getBackendUser()->user['uid']) ||
@@ -214,7 +214,7 @@ class PermissionAjaxController
      * @param string $username The username to display
      * @return string The html select element
      */
-    protected function renderUserSelector(int $page, int $ownerUid, $username = '') : string
+    protected function renderUserSelector(int $page, int $ownerUid, $username = ''): string
     {
         $page = (int) $page;
         $ownerUid = (int)$ownerUid;
@@ -250,7 +250,7 @@ class PermissionAjaxController
      * @param string $groupname The groupname to display
      * @return string The html select element
      */
-    protected function renderGroupSelector(int $page, int $groupUid, $groupname = '') : string
+    protected function renderGroupSelector(int $page, int $groupUid, $groupname = ''): string
     {
         $page = (int)$page;
         $groupUid = (int)$groupUid;
@@ -300,7 +300,7 @@ class PermissionAjaxController
      * @param bool $validUser Must be set to FALSE, if the user has no name or is deleted
      * @return string The new group wrapped in HTML
      */
-    public static function renderOwnername(int $page, int $ownerUid, string $username, $validUser = true) : string
+    public static function renderOwnername(int $page, int $ownerUid, string $username, $validUser = true): string
     {
         $elementId = 'o_' . $page;
         return '<span id="' . $elementId . '"><a class="ug_selector changeowner" data-page="' . $page . '" data-owner="' . $ownerUid . '" data-username="' . htmlspecialchars($username) . '">' . ($validUser ? ($username == '' ? '<span class=not_set>[' . $GLOBALS['LANG']->getLL('notSet') . ']</span>' : htmlspecialchars(GeneralUtility::fixed_lgd_cs($username, 20))) : '<span class=not_set title="' . htmlspecialchars(GeneralUtility::fixed_lgd_cs($username, 20)) . '">[' . $GLOBALS['LANG']->getLL('deleted') . ']</span>') . '</a></span>';
@@ -315,7 +315,7 @@ class PermissionAjaxController
      * @param bool $validGroup Must be set to FALSE, if the group has no name or is deleted
      * @return string The new group wrapped in HTML
      */
-    public static function renderGroupname(int $page, int $groupUid, string $groupname, $validGroup = true) : string
+    public static function renderGroupname(int $page, int $groupUid, string $groupname, $validGroup = true): string
     {
         $elementId = 'g_' . $page;
         return '<span id="' . $elementId . '"><a class="ug_selector changegroup" data-page="' . $page . '" data-group="' . $groupUid . '" data-groupname="' . htmlspecialchars($groupname) . '">' . ($validGroup ? ($groupname == '' ? '<span class=not_set>[' . $GLOBALS['LANG']->getLL('notSet') . ']</span>' : htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupname, 20))) : '<span class=not_set title="' . htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupname, 20)) . '">[' . $GLOBALS['LANG']->getLL('deleted') . ']</span>') . '</a></span>';
@@ -328,7 +328,7 @@ class PermissionAjaxController
      * @param string $editLockState The state of the TYPO3 page (locked, unlocked)
      * @return string The new edit lock string wrapped in HTML
      */
-    protected function renderToggleEditLock(int $page, string $editLockState) : string
+    protected function renderToggleEditLock(int $page, string $editLockState): string
     {
         if ($editLockState === 1) {
             $ret = '<span id="el_' . $page . '"><a class="editlock btn btn-default" data-page="' . $page . '" data-lockstate="1" title="The page and all content is locked for editing by all non-Admin users.">' . $this->iconFactory->getIcon('actions-lock', Icon::SIZE_SMALL)->render() . '</a></span>';
@@ -346,7 +346,7 @@ class PermissionAjaxController
      * @param string $who The scope (user, group or everybody)
      * @return string HTML marked up x/* indications.
      */
-    public static function renderPermissions(int $int, $pageId = 0, $who = 'user') : string
+    public static function renderPermissions(int $int, $pageId = 0, $who = 'user'): string
     {
         $who = htmlspecialchars($who);
         $str = '';
@@ -382,7 +382,7 @@ EOL;
     /**
      * @return LanguageService
      */
-    protected function getLanguageService() : LanguageService
+    protected function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];
     }
@@ -390,7 +390,7 @@ EOL;
     /**
      * @return BackendUserAuthentication
      */
-    protected function getBackendUser() : BackendUserAuthentication
+    protected function getBackendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }

@@ -117,7 +117,7 @@ class GroupAdminController extends AbstractModuleController
     {
         $this->init();
 
-        $access = $this->getBackendUser()->modAccess($this->MCONF, true);
+        $access = $this->getBackendUser()->modAccess($this->MCONF);
 
         if ($access || $this->getBackendUser()->isAdmin()) {
             // We need some uid in rootLine for the access check, so use first webmount
@@ -231,7 +231,6 @@ class GroupAdminController extends AbstractModuleController
                 );
             } else {
                 // Perform the saving operation with TCEmain:
-                $tce->process_uploads($_FILES);
                 $tce->process_datamap();
                 $tce->process_cmdmap();
 
@@ -321,7 +320,7 @@ class GroupAdminController extends AbstractModuleController
      * @throws Exception
      * @throws RouteNotFoundException
      */
-    public function moduleContent() : string
+    public function moduleContent(): string
     {
         $content = '';
 
@@ -376,7 +375,7 @@ class GroupAdminController extends AbstractModuleController
      * @throws RouteNotFoundException
      * @throws Exception
      */
-    public function getGroupList() : string
+    public function getGroupList(): string
     {
         $content = '';
         /** @var RecordListUtility $dblist */
@@ -389,7 +388,7 @@ class GroupAdminController extends AbstractModuleController
         $dblist->disableControls = array('import' => true);
 
         //Setup for analyze Icon
-        $dblist->analyzeLabel = $this->getLanguageService()->getLL('analyze', 1);
+        $dblist->analyzeLabel = $this->getLanguageService()->getLL('analyze');
         $dblist->analyzeParam = 'beGroup';
 
         $dblist->start(0, $this->table, $this->pointer, $this->search_field);
@@ -406,10 +405,7 @@ class GroupAdminController extends AbstractModuleController
 
         $this->moduleTemplate->addJavaScriptCode(
             'GroupListInlineJS',
-            '
-				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
-				' . $dblist->CBfunctions() . '
-			'
+            '' . $this->moduleTemplate->redirectUrls($dblist->listURL())
         );
 
         // Search box toolbar
@@ -451,7 +447,7 @@ class GroupAdminController extends AbstractModuleController
      * @throws Exception
      * @throws \TYPO3\CMS\Backend\Form\Exception
      */
-    public function getGroupEdit() : string
+    public function getGroupEdit(): string
     {
 
         // lets fake admin
@@ -466,7 +462,7 @@ class GroupAdminController extends AbstractModuleController
         $content = '';
 
         // the default field to show
-        $showColumn = 'hidden,title,db_mountpoints,file_mountpoints,subgroup,members,description,TSconfig';
+        $showColumn = 'hidden,title,db_mountpoints,file_mountpoints,subgroup,description,TSconfig';
 
         // get hideColumnGroup from TS and remove it from the showColumn
         if ($this->getBackendUser()->getTSConfig()['tc_beuser.']['hideColumnGroup']) {
@@ -505,9 +501,9 @@ class GroupAdminController extends AbstractModuleController
 
             if ($this->viewId) {
                 // Module configuration:
-                $this->modTSconfig = BackendUtility::getModTSconfig($this->viewId, 'mod.xMOD_alt_doc');
+                $this->modTSconfig = BackendUtility::getPagesTSconfig($this->viewId)['mod.']['xMOD_alt_doc.'] ?? [];
             } else {
-                $this->modTSconfig=array();
+                $this->modTSconfig = [];
             }
 
             $content = $formResultCompiler->addCssFiles();

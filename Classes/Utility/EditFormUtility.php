@@ -128,7 +128,7 @@ class EditFormUtility
      * @throws Exception
      * @throws \TYPO3\CMS\Core\Exception
      */
-    public function makeEditForm() : string
+    public function makeEditForm(): string
     {
         // Initialize variables:
         $this->elementsData = array();
@@ -294,8 +294,7 @@ class EditFormUtility
                                             $queryBuilder->expr()->like(
                                                 'usergroup',
                                                 $queryBuilder->createNamedParameter(
-                                                    '%'.$formData['databaseRow']['uid'].'%',
-                                                    \PDO::PARAM_INT
+                                                    "'%" . $formData['databaseRow']['uid'] . "%'"
                                                 )
                                             )
                                         )
@@ -382,7 +381,6 @@ class EditFormUtility
                             } catch (AccessDeniedException $e) {
                                 $this->errorC++;
                                 // Try to fetch error message from "recordInternals" be user object
-                                // @todo: This construct should be logged and localized and de-uglified
                                 $message = $beUser->errorMsg;
                                 if (empty($message)) {
                                     // Create message from exception.

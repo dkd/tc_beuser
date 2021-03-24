@@ -157,7 +157,7 @@ class RecordListUtility extends DatabaseRecordList
      * @return string HTML table with the listing for the record.
      * @throws Exception
      */
-    public function getTable($table, $id, $rowList = '') : string
+    public function getTable($table, $id, $rowList = ''): string
     {
         $rowListArray = GeneralUtility::trimExplode(',', $rowList, true);
         // if no columns have been specified, show description (if configured)
@@ -287,7 +287,10 @@ class RecordListUtility extends DatabaseRecordList
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['getTable'] as $classData) {
                 $hookObject = GeneralUtility::makeInstance($classData);
                 if (!$hookObject instanceof RecordListGetTableHookInterface) {
-                    throw new UnexpectedValueException($classData . ' must implement interface ' . RecordListGetTableHookInterface::class, 1195114460);
+                    throw new UnexpectedValueException(
+                        $classData . ' must implement interface ' . RecordListGetTableHookInterface::class,
+                        1195114460
+                    );
                 }
                 $hookObject->getDBlistQuery($table, $id, $addWhere, $selFieldList, $this);
             }
@@ -307,7 +310,7 @@ class RecordListUtility extends DatabaseRecordList
             $addWhere = (string) $queryBuilder->expr()->andX(
                 $addWhere,
                 $queryBuilder->expr()->eq('admin', 0),
-                $queryBuilder->expr()->notLike('username', '_cli%')
+                $queryBuilder->expr()->notLike('username', "'_cli%'")
             );
         }
 
@@ -584,7 +587,7 @@ class RecordListUtility extends DatabaseRecordList
      * @access private
      * @see getTable()
      */
-    public function renderListHeader($table, $currentIdList) : string
+    public function renderListHeader($table, $currentIdList): string
     {
         $lang = $this->getLanguageService();
         // Init:
@@ -755,7 +758,7 @@ class RecordListUtility extends DatabaseRecordList
      * @access private
      * @see getTable()
      */
-    public function renderListRow($table, $row, $cc, $titleCol, $thumbsCol, $indent = 0) : string
+    public function renderListRow($table, $row, $cc, $titleCol, $thumbsCol, $indent = 0): string
     {
         if (!is_array($row)) {
             return '';
@@ -828,7 +831,7 @@ class RecordListUtility extends DatabaseRecordList
                     trim($row[$thumbsCol]) &&
                     preg_match('/(^|(.*(;|,)?))' . $thumbsCol . '(((;|,).*)|$)/', $visibleColumns) === 1
                 ) {
-                    $thumbCode = '<br />' . $this->thumbCode($row, $table, $thumbsCol);
+                    $thumbCode = '<br />' . BackendUtility::thumbCode($row, $table, $thumbsCol);
                     $theData[$fCol] .= $thumbCode;
                     $theData['__label'] .= $thumbCode;
                 }
@@ -844,7 +847,7 @@ class RecordListUtility extends DatabaseRecordList
             } elseif ($fCol === '_PATH_') {
                 $theData[$fCol] = $this->recPath($row['pid']);
             } elseif ($fCol === '_REF_') {
-                $theData[$fCol] = $this->createReferenceHtml($table, $row['uid']);
+                $theData[$fCol] = $this->generateReferenceToolTip($table, $row['uid']);
             } elseif ($fCol === '_CONTROL_') {
                 $theData[$fCol] = $this->makeControl($table, $row);
             } elseif ($fCol === '_CLIPBOARD_') {
@@ -964,7 +967,7 @@ class RecordListUtility extends DatabaseRecordList
      * @return string HTML table with the control panel (unless disabled)
      * @throws RouteNotFoundException
      */
-    public function makeControl($table, $row) : string
+    public function makeControl($table, $row): string
     {
         if ($this->dontShowClipControlPanels) {
             return '';
@@ -1006,7 +1009,7 @@ class RecordListUtility extends DatabaseRecordList
         //dkd-kartolo
         //show magnifier (mod4)
         if (!$this->disableControls['detail']) {
-            $infoAction = '<a href="#" class="btn btn-default" onclick="javascript:top.goToModule(\'tcTools_Overview\', 1, \'&' .
+            $infoAction = '<a href="#" class="btn btn-default" onclick="top.goToModule(\'tcTools_Overview\', 1, \'&' .
                 $this->analyzeParam . '=' . $row['uid'] . '\')"' .
                 ' title="' . $this->analyzeLabel . '">' .
                 $this->iconFactory->getIcon('apps-toolbar-menu-search', Icon::SIZE_SMALL)->render() .
@@ -1028,10 +1031,11 @@ class RecordListUtility extends DatabaseRecordList
         }
 
         // "Info": (All records)
-        $onClick = 'top.launchView(' . GeneralUtility::quoteJSvalue($table) . ', ' . (int)$row['uid'] . '); return false;';
-        $viewBigAction = '<a class="btn btn-default" href="#" onclick="' . htmlspecialchars($onClick) . '" title="' .
+        $viewBigAction = '<a class="btn btn-default" href="#" data-dispatch-action="TYPO3.InfoWindow.showItem"' .
+            ' data-dispatch-args-list="' . $table . ',' . (int)$row['uid'] . '" title="' .
             htmlspecialchars($this->getLanguageService()->getLL('showInfo')) . '">' .
             $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render() . '</a>';
+
         $this->addActionToCellGroup($cells, $viewBigAction, 'viewBig');
 
             // "Hide/Unhide" links:
@@ -1154,8 +1158,13 @@ class RecordListUtility extends DatabaseRecordList
      * @param string $table
      * @return QueryBuilder
      */
-    protected function getQueryBuilderForTable(string $table) : QueryBuilder
+    protected function getQueryBuilderForTable(string $table): QueryBuilder
     {
         return GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+    }
+
+    private function getModule()
+    {
+        return $GLOBALS['SOBE'];
     }
 }

@@ -110,6 +110,16 @@ class UserAdminController extends AbstractModuleController
     public $error;
 
     /**
+     * @var array|mixed|string|null
+     */
+    private $feID;
+
+    /**
+     * @var array|mixed|string|null
+     */
+    private $search_field;
+
+    /**
      * Load needed locallang files
      */
     public function loadLocallang()
@@ -128,7 +138,7 @@ class UserAdminController extends AbstractModuleController
     {
         $this->init();
 
-        $access = $this->getBackendUser()->modAccess($this->MCONF, true);
+        $access = $this->getBackendUser()->modAccess($this->MCONF);
 
         if ($access || $this->getBackendUser()->isAdmin()) {
             // We need some uid in rootLine for the access check, so use first webmount
@@ -164,7 +174,7 @@ class UserAdminController extends AbstractModuleController
         }
         // GPvars specifically for processing:
         $this->data = GeneralUtility::_GP('data');
-        $this->cmd = GeneralUtility::_GP('cmd') ? GeneralUtility::_GP('cmd') : array();
+        $this->cmd = GeneralUtility::_GP('cmd') ?: [];
         $this->disableRTE = GeneralUtility::_GP('_disableRTE');
 
         //check data with fe user
@@ -205,7 +215,10 @@ class UserAdminController extends AbstractModuleController
         }
 
         if ($notSync) {
-            $this->error[] = array('error',$this->getLanguageService()->getLL('data-sync'));
+            $this->error[] = [
+                'error',
+                $this->getLanguageService()->getLL('data-sync')
+            ];
         } else {
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
@@ -254,7 +267,6 @@ class UserAdminController extends AbstractModuleController
                 );
             } else {
                 // Perform the saving operation with TCEmain:
-                $tce->process_uploads($_FILES);
                 $tce->process_datamap();
                 $tce->process_cmdmap();
 
@@ -301,7 +313,9 @@ class UserAdminController extends AbstractModuleController
     {
         parent::init();
 
-        TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser'));
+        TcBeuserUtility::switchUser(
+            GeneralUtility::_GP('SwitchUser') ? GeneralUtility::_GP('SwitchUser') : ''
+        );
 
         $this->id = 0;
         $this->search_field = GeneralUtility::_GP('search_field');
@@ -352,7 +366,7 @@ class UserAdminController extends AbstractModuleController
      * @throws Exception
      * @throws RouteNotFoundException
      */
-    public function moduleContent() : string
+    public function moduleContent(): string
     {
         $content = '';
         if (!empty($this->editconf)) {
@@ -441,7 +455,7 @@ class UserAdminController extends AbstractModuleController
      * @throws RouteNotFoundException
      * @throws Exception
      */
-    public function getUserList() : string
+    public function getUserList(): string
     {
         $content = '';
         /** @var RecordListUtility $dblist */
@@ -487,6 +501,7 @@ class UserAdminController extends AbstractModuleController
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
             $res = $queryBuilder->select('username')->from('be_users')->execute();
+            $exclude = [];
             while ($row = $res->fetch()) {
                 $exclude[] = "'".$row['username']."'";
             }
@@ -520,10 +535,7 @@ class UserAdminController extends AbstractModuleController
 
         $this->moduleTemplate->addJavaScriptCode(
             'UserListInlineJS',
-            '
-				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
-				' . $dblist->CBfunctions() . '
-			'
+            '' . $this->moduleTemplate->redirectUrls($dblist->listURL())
         );
 
 
@@ -576,7 +588,7 @@ class UserAdminController extends AbstractModuleController
      * @throws Exception
      * @throws \TYPO3\CMS\Backend\Form\Exception
      */
-    public function getUserEdit() : string
+    public function getUserEdit(): string
     {
 
         // lets fake admin
@@ -631,7 +643,7 @@ class UserAdminController extends AbstractModuleController
 
             if ($this->viewId) {
                 // Module configuration:
-                $this->modTSconfig = BackendUtility::getModTSconfig($this->viewId, 'mod.xMOD_alt_doc');
+                $this->modTSconfig = BackendUtility::getPagesTSconfig($this->viewId)['mod.']['xMOD_alt_doc.'] ?? [];
             } else {
                 $this->modTSconfig=array();
             }

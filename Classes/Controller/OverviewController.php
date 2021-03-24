@@ -4,6 +4,7 @@ namespace Dkd\TcBeuser\Controller;
 use Dkd\TcBeuser\Utility\OverviewUtility;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Session\Backend\Exception\SessionNotUpdatedException;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -79,15 +80,15 @@ class OverviewController extends AbstractModuleController
      * Entrance from the backend module. This replace the _dispatch
      *
      * @param ServerRequestInterface $request The request object from the backend
-     * @param ResponseInterface $response The reponse object sent to the backend
      *
      * @return ResponseInterface Return the response object
      * @throws Exception
      * @throws RouteNotFoundException
      * @throws SessionNotUpdatedException
      */
-    public function mainAction(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
+    public function mainAction(ServerRequestInterface $request): ResponseInterface
     {
+        $response = new Response();
         $this->loadLocallang();
 
         if (GeneralUtility::_POST('ajaxCall')) {
@@ -102,15 +103,17 @@ class OverviewController extends AbstractModuleController
             echo $content;
         } else {
             $this->init();
-
             $this->main();
 
             // Wrap content with form tag
-            $content= '<form action="' . htmlspecialchars($this->R_URI) . '" method="post" ' .
-                'enctype="' . $GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'] . '" ' .
-                'name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">' .
-                $this->content .
-                '</form>';
+            $action = htmlspecialchars($this->R_URI);
+            $enctype = $GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'];
+            $content = <<<EOL
+<form action="$action" method="post" enctype="$enctype" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">
+    $this->content
+</form>
+EOL;
+
 
             $this->moduleTemplate->setContent($content);
             $response->getBody()->write($this->moduleTemplate->renderContent());
@@ -132,7 +135,7 @@ class OverviewController extends AbstractModuleController
     {
         $this->init();
 
-        $access = $this->getBackendUser()->modAccess($this->MCONF, true);
+        $access = $this->getBackendUser()->modAccess($this->MCONF);
 
         if ($access || $this->getBackendUser()->isAdmin()) {
             // We need some uid in rootLine for the access check, so use first webmount
@@ -185,7 +188,7 @@ class OverviewController extends AbstractModuleController
         parent::init();
         $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
 
-        TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser'));
+        TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser') ?: '');
 
         $this->moduleTemplate->addJavaScriptCode(
             'OverviewModule',
@@ -195,7 +198,6 @@ class OverviewController extends AbstractModuleController
 				document.location = URL;
 			}
 
-			var T3_BACKPATH = \''.$this->doc->backPath.'\';
 			var ajaxUrl = \'' .
             GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($GLOBALS['MCONF']['name']) .
             '\';' .
@@ -274,7 +276,7 @@ class OverviewController extends AbstractModuleController
      * @return string
      * @throws Exception
      */
-    public function moduleContent() : string
+    public function moduleContent(): string
     {
         switch ((string)$this->MOD_SETTINGS['function']) {
             case '1':
@@ -299,7 +301,7 @@ class OverviewController extends AbstractModuleController
      * @return string
      * @throws Exception
      */
-    public function getUserView($userUid) : string
+    public function getUserView($userUid): string
     {
         $content = '';
 
@@ -318,7 +320,6 @@ class OverviewController extends AbstractModuleController
 
             /** @var RecordListUtility $dblist */
             $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
-            $dblist->backPath = $this->doc->backPath;
             $dblist->script = $this->MCONF['script'];
             $dblist->alternateBgColors = true;
             $dblist->userMainGroupOnly = true;
@@ -334,17 +335,13 @@ class OverviewController extends AbstractModuleController
             $dblist->start(0, $this->table, $this->pointer, $this->search_field);
             $dblist->generateList();
 
-            $content .= $dblist->HTMLcode ? $dblist->HTMLcode : '<br />' .
-                $this->getLanguageService()->getLL('not-found').'<br />';
+            $content .= $dblist->HTMLcode ?: '<br />' . $this->getLanguageService()->getLL('not-found').'<br />';
 
             // Add JavaScript functions to the page:
 
             $this->moduleTemplate->addJavaScriptCode(
                 'UserListInlineJS',
-                '
-				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
-				' . $dblist->CBfunctions() . '
-			'
+                '' . $this->moduleTemplate->redirectUrls($dblist->listURL())
             );
 
             // Searchbox toolbar
@@ -393,7 +390,7 @@ class OverviewController extends AbstractModuleController
      * @return string
      * @throws Exception
      */
-    public function getGroupView($groupUid) : string
+    public function getGroupView($groupUid): string
     {
         $content = '';
 
@@ -412,7 +409,6 @@ class OverviewController extends AbstractModuleController
 
             /** @var RecordListUtility $dblist */
             $dblist = GeneralUtility::makeInstance(RecordListUtility::class);
-            $dblist->backPath = $this->doc->backPath;
             $dblist->script = $this->MCONF['script'];
             $dblist->alternateBgColors = true;
             $dblist->userMainGroupOnly = true;
@@ -446,6 +442,7 @@ class OverviewController extends AbstractModuleController
             }
 
             // Searchbox toolbar
+            $searchBox = '';
             if (
                 !$this->modTSconfig['properties']['disableSearchBox']
                 && ($dblist->HTMLcode || !empty($dblist->searchString))
@@ -485,7 +482,7 @@ class OverviewController extends AbstractModuleController
         return $content;
     }
 
-    public function getColSelector() : string
+    public function getColSelector(): string
     {
         $content = '';
 
@@ -513,7 +510,7 @@ EOL;
      * @return string
      * @throws RouteNotFoundException
      */
-    public function getUserViewHeader($userRecord) : string
+    public function getUserViewHeader($userRecord): string
     {
         $recTitle = htmlspecialchars(BackendUtility::getRecordTitle($this->table, $userRecord));
         $iconImg = $this->iconFactory->getIconForRecord($this->table, $userRecord,Icon::SIZE_SMALL)->render();
@@ -527,7 +524,7 @@ EOL;
      * @return string
      * @throws RouteNotFoundException
      */
-    public function makeUserControl($userRecord) : string
+    public function makeUserControl($userRecord): string
     {
         $control = '<div class="btn-group">';
         // Edit (Always shown)
@@ -544,11 +541,9 @@ EOL;
 
         // Info (Always shown)
         $icon = $this->getIcon('actions-document-info')->render();
-        $onClick = htmlspecialchars(
-            'top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;'
-        );
+        $dispatchArguments = htmlspecialchars($this->table . ','. $userRecord['uid']);
         $control .= <<<EOL
-<a href="#" class="btn btn-default" onclick="$onClick">
+<a href="#" class="btn btn-default" data-dispatch-action="TYPO3.InfoWindow.showItem" data-dispatch-args-list="$dispatchArguments">
     $icon
 </a>
 EOL;
@@ -627,7 +622,7 @@ EOL;
      * @throws RouteNotFoundException
      * @see: BackendUtility::editOnClick
      */
-    public static function editOnClick(string $params, string $requestUri = '') : string
+    public static function editOnClick(string $params, string $requestUri = ''): string
     {
         if ($requestUri == -1) {
             $returnUrl = 'T3_THIS_LOCATION';
@@ -652,7 +647,7 @@ EOL;
      * @return string jumpTo URL link with redirect
      * @throws RouteNotFoundException
      */
-    public function actionOnClick(string $params, string $requestURI = '') : string
+    public function actionOnClick(string $params, string $requestURI = ''): string
     {
         $redirect = '&redirect='
             . (
@@ -664,7 +659,7 @@ EOL;
             . $params . $redirect;
     }
 
-    private function getIcon(string $identifier) : Icon
+    private function getIcon(string $identifier): Icon
     {
         return $this->iconFactory->getIcon($identifier, Icon::SIZE_SMALL);
     }

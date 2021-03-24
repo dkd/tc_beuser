@@ -44,6 +44,6 @@ class RecordInfoController extends ElementInformationController
             //make fake Admin
             TcBeuserUtility::fakeAdmin();
         }
-        parent::init();
+        parent::init($request);
     }
 }

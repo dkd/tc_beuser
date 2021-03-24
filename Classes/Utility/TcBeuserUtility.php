@@ -55,7 +55,7 @@ class TcBeuserUtility
         self::getBackendUser()->user['admin'] = 0;
     }
 
-    public static function getSubgroup($id) : int
+    public static function getSubgroup($id): int
     {
         $table = 'be_groups';
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -82,7 +82,7 @@ class TcBeuserUtility
         }
     }
 
-    public static function allowWhereMember($TSconfig) : array
+    public static function allowWhereMember(): array
     {
         $userGroup = explode(',', self::getBackendUser()->user['usergroup']);
 
@@ -101,7 +101,7 @@ class TcBeuserUtility
         return $allowWhereMember;
     }
 
-    public static function allowCreated() : array
+    public static function allowCreated(): array
     {
         $table = 'be_groups';
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -175,7 +175,7 @@ class TcBeuserUtility
         return $denyID;
     }
 
-    public static function showPrefixID($TSconfig, $mode) : array
+    public static function showPrefixID($TSconfig, $mode): array
     {
         $showPrefixID = [];
         $table = 'be_groups';
@@ -194,7 +194,7 @@ class TcBeuserUtility
                     $orStatements->add(
                         $queryBuilder->expr()->like(
                             'title',
-                            $queryBuilder->createNamedParameter(trim($pre).'%')
+                            $queryBuilder->createNamedParameter("'" . trim($pre) . "%'")
                         )
                     );
                 }
@@ -202,7 +202,7 @@ class TcBeuserUtility
             } else {
                 $queryBuilder->andWhere($queryBuilder->expr()->like(
                     'title',
-                    $queryBuilder->createNamedParameter($TSconfig[$mode].'%'))
+                    $queryBuilder->createNamedParameter("'" . $TSconfig[$mode] . "%'"))
                 );
             }
             $res = $queryBuilder->execute();
@@ -214,7 +214,7 @@ class TcBeuserUtility
         return $showPrefixID;
     }
 
-    public static function showGroupID() : array
+    public static function showGroupID(): array
     {
         $TSconfig = [];
         if (self::getBackendUser()->getTSConfig()['tx_tcbeuser.']) {
@@ -229,7 +229,7 @@ class TcBeuserUtility
 
             //put ID allowWhereMember
             if ($TSconfig['allowWhereMember'] == 1) {
-                $allowWhereMember = self::allowWhereMember($TSconfig);
+                $allowWhereMember = self::allowWhereMember();
                 $showGroupID = array_merge($showGroupID, $allowWhereMember);
             }
 
@@ -252,7 +252,7 @@ class TcBeuserUtility
 
             //put ID allowWhereMember
             if ($TSconfig['allowWhereMember'] == 0) {
-                $allowWhereMember = self::allowWhereMember($TSconfig);
+                $allowWhereMember = self::allowWhereMember();
                 $denyGroupID = array_merge($denyGroupID, $allowWhereMember);
             }
 
@@ -321,7 +321,7 @@ class TcBeuserUtility
     /**
      * Get all ID in a comma-list
      */
-    public static function getAllGroupsID() : string
+    public static function getAllGroupsID(): string
     {
         $table = 'be_groups';
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -372,7 +372,7 @@ class TcBeuserUtility
      * Returns the Backend User
      * @return BackendUserAuthentication
      */
-    protected static function getBackendUser() : BackendUserAuthentication
+    protected static function getBackendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }
@@ -380,7 +380,7 @@ class TcBeuserUtility
     /**
      * @return SessionBackendInterface
      */
-    protected static function getSessionBackend() : SessionBackendInterface
+    protected static function getSessionBackend(): SessionBackendInterface
     {
         $loginType = self::getBackendUser()->getLoginType();
         return GeneralUtility::makeInstance(SessionManager::class)->getSessionBackend($loginType);

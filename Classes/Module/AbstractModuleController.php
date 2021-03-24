@@ -15,9 +15,9 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Backend\Module\BaseScriptClass;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
+use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -196,6 +196,11 @@ abstract class AbstractModuleController extends BaseScriptClass
      */
     public $table = 'be_users';
 
+    /**
+     * @var array|mixed
+     */
+    protected $extConf;
+
 
     /**
      * Constructor
@@ -210,7 +215,7 @@ abstract class AbstractModuleController extends BaseScriptClass
 
         $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
 
-        $this->moduleTemplate->getPageRenderer()->loadJquery();
+        $this->moduleTemplate->getPageRenderer()->addJsLibrary("jquery", "EXT:core/Resources/Public/JavaScript/Contrib/jquery/jquery.js");
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/FieldSelectBox');
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/Recordlist');
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/AjaxDataHandler');
@@ -230,15 +235,15 @@ abstract class AbstractModuleController extends BaseScriptClass
      * Entrance from the backend module. This replace the _dispatch
      *
      * @param ServerRequestInterface $request The request object from the backend
-     * @param ResponseInterface $response The reponse object sent to the backend
      *
      * @return ResponseInterface Return the response object
      * @throws ExtensionConfigurationExtensionNotConfiguredException
      * @throws ExtensionConfigurationPathDoesNotExistException
      * @throws RouteNotFoundException
      */
-    public function mainAction(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
+    public function mainAction(ServerRequestInterface $request): ResponseInterface
     {
+        $response = new Response();
         $this->loadLocallang();
 
         $this->preInit();
@@ -318,7 +323,7 @@ abstract class AbstractModuleController extends BaseScriptClass
      *
      * @return bool True, then save the document (data submitted)
      */
-    public function doProcessData() : bool
+    public function doProcessData(): bool
     {
         return $this->doSave ||
             isset($_POST['_savedok']) ||
@@ -439,7 +444,7 @@ abstract class AbstractModuleController extends BaseScriptClass
                 // Delete:
                 if ($this->firstEl['deleteAccess']
                     && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']
-                    && !$this->getNewIconMode($this->firstEl['table'], 'disableDelete')
+                    && !$this->getNewIconMode($this->firstEl['table'])
                 ) {
                     $returnUrl = $this->retUrl;
                     if ($this->firstEl['table'] === 'pages') {
@@ -482,7 +487,7 @@ abstract class AbstractModuleController extends BaseScriptClass
      * @param string $editForm HTML form.
      * @return string Composite HTML
      */
-    public function compileForm(string $editForm) : string
+    public function compileForm(string $editForm): string
     {
         $formContent = '
 			<!-- EDITING FORM -->
@@ -492,7 +497,7 @@ abstract class AbstractModuleController extends BaseScriptClass
             enctype="multipart/form-data"
             name="editform"
             id="EditDocumentController"
-            onsubmit="TBE_EDITOR.checkAndDoSubmit(1); return false;">
+            onsubmit="">
 			' . $editForm . '
 
 			<input type="hidden" name="returnUrl" value="' . htmlspecialchars($this->retUrl) . '" />
@@ -526,10 +531,9 @@ abstract class AbstractModuleController extends BaseScriptClass
      * positions.
      *
      * @param string $table The table for which the configuration may be specific
-     * @param string $key The option for look for. Default is checking if the saveDocNew button should be displayed.
      * @return string Return value fetched from USER TSconfig
      */
-    public function getNewIconMode(string $table, $key = 'saveDocNew') : string
+    public function getNewIconMode(string $table): string
     {
         $TSconfig = $this->getBackendUser()->getTSConfig()['options.']['.'] ?? null;
         return trim(isset($TSconfig['properties'][$table]) ? $TSconfig['properties'][$table] : $TSconfig['value']);

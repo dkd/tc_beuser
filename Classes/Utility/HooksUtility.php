@@ -165,7 +165,7 @@ class HooksUtility
                $queryBuilder->select('*')->from('be_users')
                     ->where($queryBuilder->expr()->like(
                         'usergroup',
-                        $queryBuilder->createNamedParameter('%'.$uid.'%', \PDO::PARAM_INT))
+                        $queryBuilder->createNamedParameter("'%" . $uid . "%'"))
                     );
                 if (!empty($userList)) {
                     $queryBuilder->andWhere(
