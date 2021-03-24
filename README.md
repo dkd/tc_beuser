@@ -1,6 +1,6 @@
 # TYPO3 Extension TC BE User Admin (tc_beuser)
 
-[![TYPO3](https://img.shields.io/badge/TYPO3-9.5--10.4-orange.svg?style=flat-square)](https://typo3.org/extensions/repository/view/jh_captcha)
+[![TYPO3](https://img.shields.io/badge/TYPO3-10.4-orange.svg?style=flat-square)](https://typo3.org/extensions/repository/view/jh_captcha)
 
 A collection of modules for administer BE users more comfortably
 
