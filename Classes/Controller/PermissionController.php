@@ -179,16 +179,16 @@ class PermissionController extends ActionController
             ))->buildBackendUri();
             $closeButton = $buttonBar->makeLinkButton()
                 ->setHref($closeUrl)
-                ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.closeDoc'))
+                ->setTitle($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:rm.closeDoc'))
                 ->setIcon($this->view->getModuleTemplate()->getIconFactory()->getIcon(
-                    'actions-document-close',
+                    'actions-close',
                     Icon::SIZE_SMALL
                 ));
             $buttonBar->addButton($closeButton);
 
             // SAVE button:
             $saveButton = $buttonBar->makeInputButton()
-                ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.saveCloseDoc'))
+                ->setTitle($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:rm.saveCloseDoc'))
                 ->setName('tx_tcbeuser_web_tcbeusertxpermission[submit]')
                 ->setValue('Save')
                 ->setForm('PermissionControllerEdit')
@@ -217,7 +217,7 @@ class PermissionController extends ActionController
                         BackendUtility::BEgetRootLine($this->pageInfo['uid'])
                     )
                 )
-                ->setTitle($this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.showPage'))
+                ->setTitle($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.showPage'))
                 ->setIcon($iconFactory->getIcon('actions-document-view', Icon::SIZE_SMALL))
                 ->setHref('#');
 

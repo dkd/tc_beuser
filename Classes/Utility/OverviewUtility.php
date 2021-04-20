@@ -35,6 +35,7 @@ use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Domain\Repository\Module\BackendModuleRepository;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
@@ -428,8 +429,9 @@ class OverviewUtility
                         ->where($queryBuilder->expr()->eq(
                                 'uid',
                                 $queryBuilder->createNamedParameter($wm, \PDO::PARAM_INT)
-                            ))
+                        ))
                         ->execute();
+                    $webmount = $webmount->fetchAll();
                     $webmount = $webmount[0];
 
                     $wmIcon = $this->iconFactory->getIconForRecord(
@@ -823,12 +825,14 @@ class OverviewUtility
                 ->getRestrictions()
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-            $workspaces = $queryBuilder
-                ->select('uid', 'title', 'adminusers', 'members', 'reviewers', 'db_mountpoints')
-                ->from('sys_workspace')
-                ->where($queryBuilder->expr()->eq('pid', 0))
-                ->orderBy('title')
-                ->execute();
+            if (ExtensionManagementUtility::isLoaded('workspaces')) {
+                $workspaces = $queryBuilder
+                    ->select('uid', 'title', 'adminusers', 'members', 'reviewers', 'db_mountpoints')
+                    ->from('sys_workspace')
+                    ->where($queryBuilder->expr()->eq('pid', 0))
+                    ->orderBy('title')
+                    ->execute();
+            }
             if ($workspaces) {
                 foreach ($workspaces as $rec) {
                     if ($userAuthGroup->checkWorkspace($rec)) {
