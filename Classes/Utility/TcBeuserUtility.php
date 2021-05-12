@@ -55,7 +55,11 @@ class TcBeuserUtility
         self::getBackendUser()->user['admin'] = 0;
     }
 
-    public static function getSubgroup($id): int
+    /**
+     * @param $id
+     * @return int|null
+     */
+    public static function getSubgroup($id)
     {
         $table = 'be_groups';
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
