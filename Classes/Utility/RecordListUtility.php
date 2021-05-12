@@ -997,7 +997,7 @@ class RecordListUtility extends DatabaseRecordList
                     $iconIdentifier = 'actions-page-open';
                 }
                 $overlayIdentifier = !$this->isEditable($table) ? 'overlay-readonly' : null;
-                $editAction = '<a class="btn btn-default" href="#" onclick="' . htmlspecialchars(BackendUtility::editOnClick($params, '', -1))
+                $editAction = '<a class="btn btn-default" href="#" onclick="' . htmlspecialchars(self::editOnClick($params, '', -1))
                     . '" title="' . htmlspecialchars($this->getLanguageService()->getLL('edit')) . '">' . $this->iconFactory->getIcon($iconIdentifier, Icon::SIZE_SMALL, $overlayIdentifier)->render() . '</a>';
             } else {
                 $editAction = $this->spaceIcon;
