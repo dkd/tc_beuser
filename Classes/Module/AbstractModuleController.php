@@ -436,46 +436,6 @@ abstract class AbstractModuleController extends BaseScriptClass
             ));
         $buttonBar->addButton($closeButton);
 
-        // DELETE button:
-        if (!$this->errorC
-            && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']
-        ) {
-            if ($this->firstEl['cmd'] !== 'new' && MathUtility::canBeInterpretedAsInteger($this->firstEl['uid'])) {
-                // Delete:
-                if ($this->firstEl['deleteAccess']
-                    && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']
-                    && !$this->getNewIconMode($this->firstEl['table'])
-                ) {
-                    $returnUrl = $this->retUrl;
-                    if ($this->firstEl['table'] === 'pages') {
-                        parse_str((string)parse_url($returnUrl, PHP_URL_QUERY), $queryParams);
-                        if (isset($queryParams['M'])
-                            && isset($queryParams['id'])
-                            && (string)$this->firstEl['uid'] === (string)$queryParams['id']
-                        ) {
-                            // tree from the outside to be able to mark the pid as active
-                            $returnUrl = GeneralUtility::makeInstance(UriBuilder::class)
-                                ->buildUriFromRoute($queryParams['M'], ['id' => 0]);
-                        }
-                    }
-                    $deleteButton = $buttonBar->makeLinkButton()
-                        ->setHref('#')
-                        ->setClasses('t3js-editform-delete-record')
-                        ->setTitle($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:rm.delete'))
-                        ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
-                            'actions-edit-delete',
-                            Icon::SIZE_SMALL
-                        ))
-                        ->setDataAttributes([
-                            'return-url' => $returnUrl,
-                            'uid' => $this->firstEl['uid'],
-                            'table' => $this->firstEl['table']
-                        ]);
-                    $buttonBar->addButton($deleteButton, ButtonBar::BUTTON_POSITION_LEFT, 3);
-                }
-            }
-        }
-
         $cshButton = $buttonBar->makeHelpButton()->setModuleName('xMOD_csh_corebe')
             ->setFieldName('TCEforms');
         $buttonBar->addButton($cshButton);
