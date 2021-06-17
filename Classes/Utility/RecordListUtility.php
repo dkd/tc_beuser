@@ -1097,17 +1097,17 @@ class RecordListUtility extends DatabaseRecordList
                 if ($this->isRecordCurrentBackendUser($table, $row)) {
                     $deleteAction = $this->spaceIcon;
                 } else {
-                    $title = BackendUtility::getRecordTitle($table, $row);
+                    $titleOrig = BackendUtility::getRecordTitle($table, $row, false, true);
+                    $title = $this->slashJS(GeneralUtility::fixed_lgd_cs($titleOrig, $this->fixedL), true);
                     $warningText = $this->getLanguageService()->getLL($actionName . 'Warning') . ' "' . $title . '" ' . '[' . $table . ':' . $row['uid'] . ']' . $refCountMsg;
+                    $linkTitle = $this->getLanguageService()->getLL($actionName);
 
-                    $params = 'cmd[' . $table . '][' . $row['uid'] . '][delete]=1';
-                    $icon = $this->iconFactory->getIcon('actions-edit-' . $actionName, Icon::SIZE_SMALL)->render();
-                    $linkTitle = htmlspecialchars($this->getLanguageService()->getLL($actionName));
-                    $deleteAction = '<a class="btn btn-default t3js-record-delete" href="#" '
-                                    . ' data-l10parent="' . htmlspecialchars($row['l10n_parent']) . '"'
-                                    . ' data-params="' . htmlspecialchars($params) . '" data-title="' . htmlspecialchars($title) . '"'
-                                    . ' data-message="' . htmlspecialchars($warningText) . '" title="' . $linkTitle . '"'
-                                    . '>' . $icon . '</a>';
+                    $params = '&cmd[' . $table . '][' . $row['uid'] . '][delete]=1&SET[function]=action';
+                    $deleteAction = '<a href="#" class="btn btn-default"' .
+                        ' title="' . $linkTitle . '"' .
+                        ' onclick="' . htmlspecialchars('if (confirm(' . GeneralUtility::quoteJSvalue($warningText) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
+                        $this->iconFactory->getIcon('actions-edit-' . $actionName, Icon::SIZE_SMALL)->render() .
+                        '</a>';
                 }
             } else {
                 $deleteAction = $this->spaceIcon;
@@ -1166,5 +1166,29 @@ class RecordListUtility extends DatabaseRecordList
     private function getModule()
     {
         return $GLOBALS['SOBE'];
+    }
+
+    private static function slashJS($string, $extended = false, $char = '\'')
+    {
+        if ($extended) {
+            $string = str_replace('\\', '\\\\', $string);
+        }
+        return str_replace($char, '\\' . $char, $string);
+    }
+
+    /**
+     * create link for the hide/unhide and delete icon.
+     * not using tce_db.php, because we need to manipulate user's permission
+     *
+     * @param string $params param with command (hide/unhide, delete) and records id
+     * @param string $requestURI redirect link, after process the command
+     * @return string jumpTo URL link with redirect
+     */
+    public function actionOnClick($params, $requestURI = '')
+    {
+        $redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
+            '&prErr=1&uPT=1';
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
+        return $uriBuilder->buildUriFromRoute($GLOBALS['MCONF']['name']) . $params . $redirect;
     }
 }
