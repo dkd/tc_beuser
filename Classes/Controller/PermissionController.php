@@ -339,7 +339,12 @@ class PermissionController extends ActionController
             );
         }
         // Get usernames and groupnames
-        $beGroupArray = BackendUtility::getGroupNames();
+        $where = '';
+        $beUser = $GLOBALS['BE_USER'];
+        if (!$beUser->isAdmin()) {
+            $where .= 'AND uid IN (' . ($beUser->user['usergroup_cached_list'] ?: 0) . ')';
+        }
+        $beGroupArray = BackendUtility::getGroupNames('title,uid', $where);
         $beUserArray  = BackendUtility::getUserNames();
 
         // Owner selector
