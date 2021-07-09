@@ -62,7 +62,7 @@ class GroupTreeUtility extends AbstractTreeView
      * @param int $id the root id from where to start
      * @return array hierarical array with tree data
      */
-    public function buildTree(int $id): array
+    public function buildTree(int $id)
     {
         $tree = [];
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
