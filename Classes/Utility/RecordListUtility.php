@@ -1052,19 +1052,19 @@ class RecordListUtility extends DatabaseRecordList
                     $hideTitle = htmlspecialchars($this->getLanguageService()->getLL('hide' . ($table === 'pages' ? 'Page' : '')));
                     $unhideTitle = htmlspecialchars($this->getLanguageService()->getLL('unHide' . ($table === 'pages' ? 'Page' : '')));
                     if ($row[$hiddenField]) {
-                        $params = 'data[' . $table . '][' . $rowUid . '][' . $hiddenField . ']=0';
-                        $hideAction = '<a class="btn btn-default t3js-record-hide" data-state="hidden" href="#"'
-                                      . ' data-params="' . htmlspecialchars($params) . '"'
-                                      . ' title="' . $unhideTitle . '"'
-                                      . ' data-toggle-title="' . $hideTitle . '">'
-                                      . $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render() . '</a>';
+                        $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
+                        $hideAction = '<a href="#" class="btn btn-default" ' .
+                            ' title="' . $unhideTitle . '" ' .
+                            'onclick="' . htmlspecialchars('return jumpToUrl(\'' . self::actionOnClick($params) . '\');') . '">' .
+                            $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render() .
+                            '</a>';
                     } else {
-                        $params = 'data[' . $table . '][' . $rowUid . '][' . $hiddenField . ']=1';
-                        $hideAction = '<a class="btn btn-default t3js-record-hide" data-state="visible" href="#"'
-                                      . ' data-params="' . htmlspecialchars($params) . '"'
-                                      . ' title="' . $hideTitle . '"'
-                                      . ' data-toggle-title="' . $unhideTitle . '">'
-                                      . $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render() . '</a>';
+                        $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
+                        $hideAction = '<a href="#" class="btn btn-default" ' .
+                            'title="' . $hideTitle . '" ' .
+                            'onclick=" ' . htmlspecialchars('return jumpToUrl(\'' . self::actionOnClick($params) . '\');') . '">' .
+                            $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render() .
+                            '</a>';
                     }
                 }
                 $this->addActionToCellGroup($cells, $hideAction, 'hide');
