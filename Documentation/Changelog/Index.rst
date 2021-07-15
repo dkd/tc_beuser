@@ -11,7 +11,7 @@
 ChangeLog
 =========
 
-2021-03-24 Jan Haffner <jan.haffner@dkd.de>
+2021-07-15 Jan Haffner <jan.haffner@dkd.de>
 -----------------------------------------------------
 
 * compatible with TYPO3 CMS 10.4 LTS only
