@@ -25,7 +25,9 @@ namespace Dkd\TcBeuser\Utility;
 ***************************************************************/
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Database\DatabaseConnection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Session\Backend\Exception\SessionNotUpdatedException;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
@@ -53,14 +55,25 @@ class TcBeuserUtility
         self::getBackendUser()->user['admin'] = 0;
     }
 
+    /**
+     * @param $id
+     * @return int|null
+     */
     public static function getSubgroup($id)
     {
-        $res = self::getDatabaseConnection()->exec_SELECTquery(
-            'uid,title,subgroup',
-            'be_groups',
-            'deleted = 0 AND uid ='.$id
-        );
-        $row = self::getDatabaseConnection()->sql_fetch_assoc($res);
+        $table = 'be_groups';
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable($table);
+        $res = $queryBuilder
+            ->select('uid', 'title', 'subgroup')
+            ->from($table)
+            ->where($queryBuilder->expr()->eq('deleted', 0))
+            ->andWhere($queryBuilder->expr()->eq(
+                'uid',
+                $queryBuilder->createNamedParameter($id, \PDO::PARAM_INT))
+            )
+            ->execute();
+        $row = $res->fetch();
         $uid = '';
         if ($row['subgroup']) {
             $subGroup = GeneralUtility::intExplode(',', $row['subgroup']);
@@ -73,11 +86,11 @@ class TcBeuserUtility
         }
     }
 
-    public static function allowWhereMember($TSconfig)
+    public static function allowWhereMember(): array
     {
         $userGroup = explode(',', self::getBackendUser()->user['usergroup']);
 
-        $allowWhereMember = array();
+        $allowWhereMember = [];
         foreach ($userGroup as $uid) {
             $groupID = $uid.','.self::getSubgroup($uid);
             if (strstr($groupID, ',')) {
@@ -92,158 +105,179 @@ class TcBeuserUtility
         return $allowWhereMember;
     }
 
-    public static function allowCreated($TSconfig, $where)
+    public static function allowCreated(): array
     {
-        $res = self::getDatabaseConnection()->exec_SELECTquery(
-            'uid',
-            'be_groups',
-            $where.' AND cruser_id = '.self::getBackendUser()->user['uid']
-        );
-        if (self::getDatabaseConnection()->sql_num_rows($res) > 0) {
-            while ($row = self::getDatabaseConnection()->sql_fetch_assoc($res)) {
-                $allowCreated[] = $row['uid'];
-            }
-        } else {
-            $allowCreated = array();
+        $table = 'be_groups';
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable($table);
+        $queryBuilder
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        $res = $queryBuilder
+            ->select('uid')
+            ->from('be_groups')
+            ->where($queryBuilder->expr()->eq('pid', 0))
+            ->andWhere($queryBuilder->expr()->eq('cruser_id', self::getBackendUser()->user['uid']))
+            ->execute();
+        $allowCreated = [];
+        while ($row = $res->fetch()) {
+            $allowCreated[] = $row['uid'];
         }
 
         return $allowCreated;
     }
 
-    public static function allow($TSconfig, $where)
+    public static function allow($TSconfig)
     {
+        $allowID = [];
+
         if (isset($TSconfig['allow']) && !empty($TSconfig['allow'])) {
             if ($TSconfig['allow'] == 'all') {
-                $addWhere = empty($showGroupID) ? '' : ' AND uid not in ('.implode(',', $showGroupID).')';
-                $res = self::getDatabaseConnection()->exec_SELECTquery(
-                    'uid',
-                    'be_groups',
-                    $where.$addWhere
-                );
-                if (self::getDatabaseConnection()->sql_num_rows($res)>0) {
-                    while ($row = self::getDatabaseConnection()->sql_fetch_assoc($res)) {
-                        $allowID[] = $row['uid'];
-                    }
+                $table = 'be_groups';
+                $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                    ->getQueryBuilderForTable($table);
+                $queryBuilder
+                    ->getRestrictions()
+                    ->removeAll()
+                    ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+                $queryBuilder
+                    ->select('uid')
+                    ->from($table)
+                    ->where($queryBuilder->expr()->eq('pid', 0));
+                if (!empty($showGroupID)) {
+                    $queryBuilder->andWhere(
+                        $queryBuilder->expr()->notIn('uid', implode(',', $showGroupID))
+                    );
+                }
+                $res = $queryBuilder->execute();
+                while ($row = $res->fetch()) {
+                    $allowID[] = $row['uid'];
                 }
             } elseif (strstr($TSconfig['allow'], ',')) {
                 $allowID = explode(',', $TSconfig['allow']);
             } else {
-                $allowID = array(trim($TSconfig['allow']));
+                $allowID = [ trim($TSconfig['allow']) ];
             }
-        } else {
-            $allowID = array();
         }
+
         return $allowID;
     }
 
-    public static function denyID($TSconfig, $where)
+    public static function denyID($TSconfig)
     {
+        $denyID = [];
+
         if (isset($TSconfig['deny']) && !empty($TSconfig['deny'])) {
             if (strstr($TSconfig['deny'], ',')) {
                 $denyID = explode(',', $TSconfig['deny']);
             } else {
-                $denyID = array(trim($TSconfig['deny']));
+                $denyID = [trim($TSconfig['deny'])];
             }
-        } else {
-            $denyID = array();
         }
+
         return $denyID;
     }
 
-    public static function showPrefixID($TSconfig, $where, $mode)
+    public static function showPrefixID($TSconfig, $mode): array
     {
-        $addWhere = "";
-
+        $showPrefixID = [];
+        $table = 'be_groups';
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable($table);
+        $queryBuilder
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        $queryBuilder->select('uid')->from($table)->where($queryBuilder->expr()->eq('pid', 0));
         if (isset($TSconfig[$mode]) && !empty($TSconfig[$mode])) {
             if (strstr($TSconfig[$mode], ',')) {
                 $prefix = explode(',', $TSconfig[$mode]);
+                $orStatements = $queryBuilder->expr()->orX();
                 foreach ($prefix as $pre) {
-                    $whereTemp[] = 'title like '.self::getDatabaseConnection()->fullQuoteStr(trim($pre).'%', 'be_groups');
+                    $orStatements->add(
+                        $queryBuilder->expr()->like(
+                            'title',
+                            $queryBuilder->createNamedParameter("'" . trim($pre) . "%'")
+                        )
+                    );
                 }
-                $addWhere .= ' AND ('.implode(' OR ', $whereTemp).')';
+                $queryBuilder->andWhere($orStatements);
             } else {
-                $addWhere .= ' AND '.'title like '.self::getDatabaseConnection()->fullQuoteStr($TSconfig[$mode].'%', 'be_groups');
+                $queryBuilder->andWhere($queryBuilder->expr()->like(
+                    'title',
+                    $queryBuilder->createNamedParameter("'" . $TSconfig[$mode] . "%'"))
+                );
             }
-
-            $res = self::getDatabaseConnection()->exec_SELECTquery(
-                'uid',
-                'be_groups',
-                $where.$addWhere
-            );
-            if (self::getDatabaseConnection()->sql_num_rows($res) > 0) {
-                while ($row = self::getDatabaseConnection()->sql_fetch_assoc($res)) {
-                    $showPrefixID[] = $row['uid'];
-                }
-            } else {
-                $showPrefixID = array();
+            $res = $queryBuilder->execute();
+            while ($row = $res->fetch()) {
+                $showPrefixID[] = $row['uid'];
             }
-        } else {
-            $showPrefixID = array();
         }
+
         return $showPrefixID;
     }
 
-    public static function showGroupID()
+    public static function showGroupID(): array
     {
-        $TSconfig = self::getBackendUser()->userTS['tx_tcbeuser.'] ? self::getBackendUser()->userTS['tx_tcbeuser.'] : array();
+        $TSconfig = [];
+        if (self::getBackendUser()->getTSConfig()['tx_tcbeuser.']) {
+            $TSconfig = self::getBackendUser()->getTSConfig()['tx_tcbeuser.'];
+        }
             // default value
         $TSconfig['allowCreated'] = (strlen(trim($TSconfig['allowCreated'])) > 0)? $TSconfig['allowCreated'] : '1';
         $TSconfig['allowWhereMember'] = (strlen(trim($TSconfig['allowWhereMember'])) > 0)? $TSconfig['allowWhereMember'] : '1';
 
-        $where = 'pid = 0'.BackendUtility::deleteClause('be_groups');
-
         if ($GLOBALS['TYPO3_CONF_VARS']['BE']['explicitADmode'] == 'explicitAllow') {
-            $showGroupID = array();
+            $showGroupID = [];
 
-                //put ID allowWhereMember
+            //put ID allowWhereMember
             if ($TSconfig['allowWhereMember'] == 1) {
-                $allowWhereMember = self::allowWhereMember($TSconfig);
+                $allowWhereMember = self::allowWhereMember();
                 $showGroupID = array_merge($showGroupID, $allowWhereMember);
             }
 
-                //put ID allowCreated
+            //put ID allowCreated
             if ($TSconfig['allowCreated'] == 1) {
-                $allowCreated = self::allowCreated($TSconfig, $where);
-                $showGroupID = array_merge($showGroupID, $allowCreated);
+                $showGroupID = array_merge($showGroupID, self::allowCreated());
             }
 
-                //allow
-            $allowID = self::allow($TSconfig, $where);
+            //allow
+            $allowID = self::allow($TSconfig);
             $showGroupID = array_merge($showGroupID, $allowID);
 
                 //put ID showPrefix
-            $showPrefix = self::showPrefixID($TSconfig, $where, 'showPrefix');
+            $showPrefix = self::showPrefixID($TSconfig, 'showPrefix');
             $showGroupID = array_merge($showGroupID, $showPrefix);
         } else {
             //explicitDeny
             $showGroupID = explode(',', self::getAllGroupsID());
-            $denyGroupID = array();
+            $denyGroupID = [];
 
-                //put ID allowWhereMember
+            //put ID allowWhereMember
             if ($TSconfig['allowWhereMember'] == 0) {
-                $allowWhereMember = self::allowWhereMember($TSconfig);
+                $allowWhereMember = self::allowWhereMember();
                 $denyGroupID = array_merge($denyGroupID, $allowWhereMember);
             }
 
-                //put ID allowCreated
+            //put ID allowCreated
             if ($TSconfig['allowCreated'] == 0) {
-                $allowCreated = self::allowCreated($TSconfig, $where);
-                $denyGroupID = array_merge($denyGroupID, $allowCreated);
+                $denyGroupID = array_merge($denyGroupID, self::allowCreated());
             }
 
-                //deny
+            //deny
             if ($TSconfig['deny'] == 'all') {
                 $denyGroupID = array_merge($denyGroupID, explode(',', self::getAllGroupsID()));
             } else {
-                $denyID = self::denyID($TSconfig, $where);
+                $denyID = self::denyID($TSconfig);
                 $denyGroupID = array_merge($denyGroupID, $denyID);
             }
 
-                //put ID dontShowPrefix
-            $dontShowPrefix = self::showPrefixID($TSconfig, $where, 'dontShowPrefix');
+            //put ID dontShowPrefix
+            $dontShowPrefix = self::showPrefixID($TSconfig, 'dontShowPrefix');
             $denyGroupID = array_merge($denyGroupID, $dontShowPrefix);
 
-                //remove $denyGroupID from $showGroupID
+            //remove $denyGroupID from $showGroupID
             $showGroupID = array_diff($showGroupID, $denyGroupID);
         }
 
@@ -251,51 +285,61 @@ class TcBeuserUtility
     }
 
     /**
-     * manipulate the list of usergroups based on TS Config
+     * Manipulate the list of usergroups based on TS Config
+     * @param $param
+     * @param $pObj
+     * @return mixed
      */
     public static function getGroupsID(&$param, &$pObj)
     {
+        $table = 'be_groups';
+        $param['items'] = [];
+
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable($table);
+        $queryBuilder
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        $queryBuilder
+            ->select('*')
+            ->from($table)
+            ->orderBy('title', 'ASC');
         if (self::getBackendUser()->user['admin'] == '0') {
-            $where = 'pid = 0 '.BackendUtility::deleteClause('be_groups');
+            $queryBuilder->where($queryBuilder->expr()->eq('pid', 0));
             $groupID = implode(',', self::showGroupID());
             if (!empty($groupID)) {
-                $where .= ' AND uid in ('.$groupID.')';
+                $queryBuilder->andWhere($queryBuilder->expr()->in('uid', $groupID));
             } else {
-                $where .= ' AND uid not in ('.self::getAllGroupsID().')';
+                $queryBuilder->andWhere($queryBuilder->expr()->notIn('uid', self::getAllGroupsID()));
             }
-        } else {
-            $where = '1'.BackendUtility::deleteClause('be_groups');
+        }
+        $res = $queryBuilder->execute();
+        while ($row = $res->fetch()) {
+            $param['items'][] = [$GLOBALS['LANG']->sL($row['title']), $row['uid'], ''];
         }
 
-        $res = self::getDatabaseConnection()->exec_SELECTquery(
-            '*',
-            'be_groups',
-            $where,
-            '',
-            'title ASC'
-        );
-        $param['items'] = array();
-
-        while ($row=self::getDatabaseConnection()->sql_fetch_assoc($res)) {
-            $param['items'][]= array($GLOBALS['LANG']->sL($row['title']),$row['uid'],'');
-        }
         return $param;
     }
 
     /**
-     * get all ID in a comma-list
+     * Get all ID in a comma-list
      */
-    public static function getAllGroupsID()
+    public static function getAllGroupsID(): string
     {
-        $res = self::getDatabaseConnection()->exec_SELECTquery(
-            'uid',
-            'be_groups',
-            '1'.BackendUtility::deleteClause('be_groups')
-        );
-        $id = array();
-        while ($row = self::getDatabaseConnection()->sql_fetch_assoc($res)) {
+        $table = 'be_groups';
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable($table);
+        $queryBuilder
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        $res = $queryBuilder->select('uid')->from($table)->execute();
+        $id = [];
+        while ($row = $res->fetch()) {
             $id[] = $row['uid'];
         }
+
         return implode(',', $id);
     }
 
@@ -305,8 +349,9 @@ class TcBeuserUtility
      *
      * @param string $switchUser BE-user record that will be switched to
      * @return void
+     * @throws SessionNotUpdatedException
      */
-    public static function switchUser($switchUser)
+    public static function switchUser(string $switchUser)
     {
         $targetUser = BackendUtility::getRecord('be_users', $switchUser);
         if (is_array($targetUser)) {
@@ -331,23 +376,15 @@ class TcBeuserUtility
      * Returns the Backend User
      * @return BackendUserAuthentication
      */
-    protected static function getBackendUser()
+    protected static function getBackendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }
 
     /**
-     * @return DatabaseConnection
-     */
-    protected static function getDatabaseConnection()
-    {
-        return $GLOBALS['TYPO3_DB'];
-    }
-
-    /**
      * @return SessionBackendInterface
      */
-    protected static function getSessionBackend()
+    protected static function getSessionBackend(): SessionBackendInterface
     {
         $loginType = self::getBackendUser()->getLoginType();
         return GeneralUtility::makeInstance(SessionManager::class)->getSessionBackend($loginType);

@@ -1,7 +1,0 @@
-﻿.. |img-13|     image:: ../../Images/manual_html_m50e28b9f.png
-   :height: 455
-   :width: 651
-.. :align: left
-.. :border: 0
-.. :name: Grafik27
-

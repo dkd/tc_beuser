@@ -1,6 +1,11 @@
 <?php
 namespace Dkd\TcBeuser\Module;
 
+use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
+use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException;
+use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 /**
  * Created by PhpStorm.
  * User: dkd-kartolo
@@ -10,10 +15,9 @@ namespace Dkd\TcBeuser\Module;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Backend\Module\BaseScriptClass;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -192,19 +196,26 @@ abstract class AbstractModuleController extends BaseScriptClass
      */
     public $table = 'be_users';
 
+    /**
+     * @var array|mixed
+     */
+    protected $extConf;
+
 
     /**
      * Constructor
+     * @throws RouteNotFoundException
      */
     public function __construct()
     {
+        parent::__construct();
         $GLOBALS['MCONF'] = $this->MCONF = array(
             'name' => $this->moduleName
         );
 
         $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
 
-        $this->moduleTemplate->getPageRenderer()->loadJquery();
+        $this->moduleTemplate->getPageRenderer()->addJsLibrary("jquery", "EXT:core/Resources/Public/JavaScript/Contrib/jquery/jquery.js");
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/FieldSelectBox');
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/Recordlist');
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/AjaxDataHandler');
@@ -224,12 +235,15 @@ abstract class AbstractModuleController extends BaseScriptClass
      * Entrance from the backend module. This replace the _dispatch
      *
      * @param ServerRequestInterface $request The request object from the backend
-     * @param ResponseInterface $response The reponse object sent to the backend
      *
      * @return ResponseInterface Return the response object
+     * @throws ExtensionConfigurationExtensionNotConfiguredException
+     * @throws ExtensionConfigurationPathDoesNotExistException
+     * @throws RouteNotFoundException
      */
-    public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
+    public function mainAction(ServerRequestInterface $request): ResponseInterface
     {
+        $response = new Response();
         $this->loadLocallang();
 
         $this->preInit();
@@ -257,6 +271,9 @@ abstract class AbstractModuleController extends BaseScriptClass
      * First initialization.
      *
      * @return void
+     * @throws RouteNotFoundException
+     * @throws ExtensionConfigurationExtensionNotConfiguredException
+     * @throws ExtensionConfigurationPathDoesNotExistException
      */
     public function preInit()
     {
@@ -276,11 +293,11 @@ abstract class AbstractModuleController extends BaseScriptClass
         }
 
         //get pid FE
-        $this->extConf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['tc_beuser']);
+        $this->extConf = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('tc_beuser');
 
         // Setting return URL
         $this->retUrl = $this->returnUrl ? $this->returnUrl
-            : BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
+            : GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 
         // Make R_URL (request url) based on input GETvars:
         $this->R_URL_parts = parse_url(GeneralUtility::getIndpEnv('REQUEST_URI'));
@@ -304,14 +321,13 @@ abstract class AbstractModuleController extends BaseScriptClass
     /**
      * Detects, if a save command has been triggered.
      *
-     * @return boolean True, then save the document (data submitted)
+     * @return bool True, then save the document (data submitted)
      */
-    public function doProcessData()
+    public function doProcessData(): bool
     {
-        $out = $this->doSave ||
+        return $this->doSave ||
             isset($_POST['_savedok']) ||
             isset($_POST['_saveandclosedok']);
-        return $out;
     }
 
     /**
@@ -342,6 +358,7 @@ abstract class AbstractModuleController extends BaseScriptClass
      * Generate the ModuleMenu
      *
      * @param string @identifier identifier of the generated menu
+     * @throws RouteNotFoundException
      */
     protected function generateMenu($identifier)
     {
@@ -351,15 +368,12 @@ abstract class AbstractModuleController extends BaseScriptClass
             $item = $menu
                 ->makeMenuItem()
                 ->setHref(
-                    BackendUtility::getModuleUrl(
-                        $this->moduleName,
-                        [
-                            'id' => $this->id,
-                            'SET' => [
-                                'function' => $controller
-                            ]
+                    GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($this->moduleName, [
+                        'id' => $this->id,
+                        'SET' => [
+                            'function' => $controller
                         ]
-                    )
+                    ])
                 )
                 ->setTitle($title);
             if ($controller == $this->MOD_SETTINGS['function']) {
@@ -373,7 +387,8 @@ abstract class AbstractModuleController extends BaseScriptClass
     /**
      * Create the panel of buttons for submitting the form or otherwise perform operations.
      *
-     * @return array All available buttons as an assoc. array
+     * @return void All available buttons as an assoc. array
+     * @throws RouteNotFoundException
      */
     protected function getSaveButton()
     {
@@ -385,20 +400,23 @@ abstract class AbstractModuleController extends BaseScriptClass
             $saveSplitButton = $buttonBar->makeSplitButton();
             // SAVE button:
             $saveButton = $buttonBar->makeInputButton()
-                ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.saveDoc'))
+                ->setTitle($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:rm.saveDoc'))
                 ->setName('_savedok')
                 ->setValue('1')
                 ->setForm('EditDocumentController')
-                ->setIcon($this->moduleTemplate->getIconFactory()->getIcon('actions-document-save', Icon::SIZE_SMALL));
+                ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
+                    'actions-document-save',
+                    Icon::SIZE_SMALL)
+                );
             $saveSplitButton->addItem($saveButton, true);
 
-            // SAVE / CLOSE
+            // SAVE and CLOSE
             $saveAndCloseButton = $buttonBar->makeInputButton()
                 ->setName('_saveandclosedok')
                 ->setClasses('t3js-editform-submitButton')
                 ->setValue('1')
                 ->setForm('EditDocumentController')
-                ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.saveCloseDoc'))
+                ->setTitle($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:rm.saveCloseDoc'))
                 ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
                     'actions-document-save-close',
                     Icon::SIZE_SMALL
@@ -410,54 +428,16 @@ abstract class AbstractModuleController extends BaseScriptClass
         $closeButton = $buttonBar->makeLinkButton()
             ->setHref('#')
             ->setClasses('t3js-editform-close')
-            ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.closeDoc'))
+            ->setTitle($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:rm.closeDoc'))
+            ->setShowLabelText(true)
             ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
-                'actions-document-close',
+                'actions-close',
                 Icon::SIZE_SMALL
             ));
         $buttonBar->addButton($closeButton);
 
-        // DELETE button:
-        if (!$this->errorC
-            && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']
-        ) {
-            if ($this->firstEl['cmd'] !== 'new' && MathUtility::canBeInterpretedAsInteger($this->firstEl['uid'])) {
-                // Delete:
-                if ($this->firstEl['deleteAccess']
-                    && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']
-                    && !$this->getNewIconMode($this->firstEl['table'], 'disableDelete')
-                ) {
-                    $returnUrl = $this->retUrl;
-                    if ($this->firstEl['table'] === 'pages') {
-                        parse_str((string)parse_url($returnUrl, PHP_URL_QUERY), $queryParams);
-                        if (isset($queryParams['M'])
-                            && isset($queryParams['id'])
-                            && (string)$this->firstEl['uid'] === (string)$queryParams['id']
-                        ) {
-                            // TODO: Use the page's pid instead of 0, this requires a clean API to manipulate the page
-                            // tree from the outside to be able to mark the pid as active
-                            $returnUrl = BackendUtility::getModuleUrl($queryParams['M'], ['id' => 0]);
-                        }
-                    }
-                    $deleteButton = $buttonBar->makeLinkButton()
-                        ->setHref('#')
-                        ->setClasses('t3js-editform-delete-record')
-                        ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.delete'))
-                        ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
-                            'actions-edit-delete',
-                            Icon::SIZE_SMALL
-                        ))
-                        ->setDataAttributes([
-                            'return-url' => $returnUrl,
-                            'uid' => $this->firstEl['uid'],
-                            'table' => $this->firstEl['table']
-                        ]);
-                    $buttonBar->addButton($deleteButton, ButtonBar::BUTTON_POSITION_LEFT, 3);
-                }
-            }
-        }
-
-        $cshButton = $buttonBar->makeHelpButton()->setModuleName('xMOD_csh_corebe')->setFieldName('TCEforms');
+        $cshButton = $buttonBar->makeHelpButton()->setModuleName('xMOD_csh_corebe')
+            ->setFieldName('TCEforms');
         $buttonBar->addButton($cshButton);
     }
 
@@ -467,7 +447,7 @@ abstract class AbstractModuleController extends BaseScriptClass
      * @param string $editForm HTML form.
      * @return string Composite HTML
      */
-    public function compileForm($editForm)
+    public function compileForm(string $editForm): string
     {
         $formContent = '
 			<!-- EDITING FORM -->
@@ -477,7 +457,7 @@ abstract class AbstractModuleController extends BaseScriptClass
             enctype="multipart/form-data"
             name="editform"
             id="EditDocumentController"
-            onsubmit="TBE_EDITOR.checkAndDoSubmit(1); return false;">
+            onsubmit="">
 			' . $editForm . '
 
 			<input type="hidden" name="returnUrl" value="' . htmlspecialchars($this->retUrl) . '" />
@@ -511,17 +491,18 @@ abstract class AbstractModuleController extends BaseScriptClass
      * positions.
      *
      * @param string $table The table for which the configuration may be specific
-     * @param string $key The option for look for. Default is checking if the saveDocNew button should be displayed.
      * @return string Return value fetched from USER TSconfig
      */
-    public function getNewIconMode($table, $key = 'saveDocNew')
+    public function getNewIconMode(string $table): string
     {
-        $TSconfig = $this->getBackendUser()->getTSConfig('options.' . $key);
-        $output = trim(isset($TSconfig['properties'][$table]) ? $TSconfig['properties'][$table] : $TSconfig['value']);
-        return $output;
+        $TSconfig = $this->getBackendUser()->getTSConfig()['options.']['.'] ?? null;
+        return trim(isset($TSconfig['properties'][$table]) ? $TSconfig['properties'][$table] : $TSconfig['value']);
     }
 
 
+    /**
+     * @throws RouteNotFoundException
+     */
     public function getInlineJS()
     {
         // Add JavaScript functions to the page:
@@ -553,7 +534,7 @@ abstract class AbstractModuleController extends BaseScriptClass
 				}
 
 				function editRecords(table,idList,addParams,CBflag) {	//
-					window.location.href="' . BackendUtility::getModuleUrl('record_edit', array('returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI'))) . '&edit["+table+"]["+idList+"]=edit"+addParams;
+					window.location.href="' . GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('record_edit', array('returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI'))) . '&edit["+table+"]["+idList+"]=edit"+addParams;
 				}
 				function editList(table,idList) {	//
 					var list="";
@@ -575,7 +556,7 @@ abstract class AbstractModuleController extends BaseScriptClass
 					return list ? list : idList;
 				}
 				function deleteRecord(table,id,url) {	//
-					window.location.href = ' . GeneralUtility::quoteJSvalue(BackendUtility::getModuleUrl($this->moduleName) . '&cmd[') . '+table+"]["+id+"][delete]=1&redirect="+escape(url)+"&vC=' . $this->getBackendUser()->veriCode() . '&prErr=1&uPT=1&SET[function]=action";
+					window.location.href = ' . GeneralUtility::quoteJSvalue(GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($this->moduleName) . '&cmd[') . '+table+"]["+id+"][delete]=1&redirect="+escape(url)+"&vC=' . '&prErr=1&uPT=1&SET[function]=action";
 				}
 
 				if (top.fsMod) top.fsMod.recentIds["tcTools"] = ' . (int)$this->id . ';

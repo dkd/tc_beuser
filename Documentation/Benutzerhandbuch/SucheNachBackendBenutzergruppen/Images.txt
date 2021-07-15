@@ -1,7 +1,0 @@
-﻿.. |img-11|     image:: ../../Images/manual_html_12f65140.png
-   :height: 456
-   :width: 654
-.. :align: left
-.. :border: 0
-.. :name: Grafik26
-
