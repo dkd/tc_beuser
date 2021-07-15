@@ -20,15 +20,15 @@ if (TYPO3_MODE == 'BE') {
 }
 
 // fe_users modified
-$be_users_cols = array(
-    'tc_beuser_switch_to' => array(
+$be_users_cols = [
+    'tc_beuser_switch_to' => [
         'label' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallang_tca.xlf:be_users.tc_beuser_switch_to',
         'exclude' => '1',
-        'config' => array(
+        'config' => [
             'type' => 'check'
-        )
-    )
-);
+        ]
+    ]
+];
 
 TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns('be_users', $be_users_cols);
 TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(

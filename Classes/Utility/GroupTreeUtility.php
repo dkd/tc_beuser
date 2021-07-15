@@ -23,8 +23,10 @@ namespace Dkd\TcBeuser\Utility;
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
+
+use Dkd\TcBeuser\Tree\View\AbstractTreeView;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Backend\Tree\View\AbstractTreeView;
 
 /**
  * GroupTreeUtility.php
@@ -36,7 +38,7 @@ use TYPO3\CMS\Backend\Tree\View\AbstractTreeView;
  */
 class GroupTreeUtility extends AbstractTreeView
 {
-    public $fieldArray = array('uid', 'title');
+    public $fieldArray = ['uid', 'title'];
     public $defaultList = 'uid,title';
 
     /**
@@ -54,24 +56,28 @@ class GroupTreeUtility extends AbstractTreeView
     }
 
     /**
-     * recursivly builds a data array from a root $id which is than used to
+     * Recursively builds a data array from a root $id which is than used to
      * build a tree from it.
      *
-     * @param integer $id the root id from where to start
+     * @param int $id the root id from where to start
      * @return array hierarical array with tree data
      */
-    public function buildTree($id)
+    public function buildTree(int $id)
     {
-        $tree = array();
+        $tree = [];
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('be_groups');
+        $res = $queryBuilder->select('uid', 'title', 'subgroup')
+            ->from('be_groups')
+            ->where($queryBuilder->expr()->eq('deleted', 0))
+            ->andWhere($queryBuilder->expr()->eq(
+                'uid',
+                $queryBuilder->createNamedParameter($id, \PDO::PARAM_INT))
+            )
+            ->execute();
 
-        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'uid, title, subgroup',
-            'be_groups',
-            'deleted = 0 AND uid = '.$id
-        );
-
-        $row         = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-        $tree[$id]   = $row;
+        $row = $res->fetch();
+        $tree[$id] = $row;
 
         if ($row['subgroup']) {
             $subGroups = GeneralUtility::intExplode(',', $row['subgroup']);
@@ -90,10 +96,9 @@ class GroupTreeUtility extends AbstractTreeView
      * @param int $uid item id for which to select subitems (parent id)
      * @param int $depth Max depth (recursivity limit)
      * @param string $depthData HTML-code prefix for recursive calls.
-
      * @return int The count of items on the level
      */
-    public function getTree($uid, $depth = 999, $depthData = '')
+    public function getTree($uid, $depth = 999, $depthData = ''): int
     {
         // Buffer for id hierarchy is reset:
         $this->buffer_idH = [];
@@ -117,7 +122,12 @@ class GroupTreeUtility extends AbstractTreeView
             $crazyRecursionLimiter--;
             $newID = $row['uid'];
             if ($newID == 0) {
-                throw new \RuntimeException('Endless recursion detected: TYPO3 has detected an error in the database. Please fix it manually (e.g. using phpMyAdmin) and change the UID of ' . $this->table . ':0 to a new value. See http://forge.typo3.org/issues/16150 to get more information about a possible cause.', 1294586383);
+                throw new \RuntimeException(
+                    'Endless recursion detected: TYPO3 has detected an error in the database. Please fix it ' .
+                    'manually (e.g. using phpMyAdmin) and change the UID of ' . $this->table . ':0 to a new value. ' .
+                    'See http://forge.typo3.org/issues/16150 to get more information about a possible cause.',
+                    1294586383
+                );
             }
             // Reserve space.
             $this->tree[] = [];
@@ -179,27 +189,5 @@ class GroupTreeUtility extends AbstractTreeView
         $this->getDataFree($res);
         $this->buffer_idH = $idH;
         return $c;
-    }
-
-    /**
-     * Wrap the plus/minus icon in a link
-     *
-     * @param string $icon HTML string to wrap, probably an image tag.
-     * @param string $cmd Command for 'PM' get var
-     * @param string $bMark If set, the link will have an anchor point (=$bMark) and a name attribute (=$bMark)
-     * @param bool $isOpen
-     * @return string Link-wrapped input string
-     * @access private
-     */
-    public function PM_ATagWrap($icon, $cmd, $bMark = '', $isOpen = false)
-    {
-        if ($this->thisScript) {
-            $anchor = $bMark ? '#' . $bMark : '';
-            $name = $bMark ? ' name="' . $bMark . '"' : '';
-            $aUrl = $this->getThisScript() . 'PM=' . $cmd . $anchor;
-            return '<span class="list-tree-control ' . ($isOpen ? 'list-tree-control-open' : 'list-tree-control-closed') . '" ' . $name . '><i class="fa"></i></span>';
-        } else {
-            return $icon;
-        }
     }
 }

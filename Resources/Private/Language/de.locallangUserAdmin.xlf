@@ -51,7 +51,7 @@
 		</trans-unit>
 		<trans-unit id="import" approved="yes">
 			<source>Import this record</source>
-			<target>Dieses Datensatz importieren</target>
+			<target>Diesen Datensatz importieren</target>
 		</trans-unit>
 		<trans-unit id="list-users" approved="yes">
 			<source>List Users</source>

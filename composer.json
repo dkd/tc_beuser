@@ -1,5 +1,4 @@
 {
-  "version" : "4.0.0",
   "name": "dkd/tc-beuser",
   "type": "typo3-cms-extension",
   "description": "A collection of modules for administer BE users more comfortably",
@@ -14,17 +13,25 @@
     {
       "name": "Ivan Kartolo",
       "role": "Developer"
+    },
+    {
+      "name": "Jan Haffner",
+      "role": "Developer"
     }
   ],
   "license": [
-    "GPL-2.0+"
+    "GPL-2.0-or-later"
   ],
+  "extra": {
+    "typo3/cms": {
+      "extension-key": "tc_beuser"
+    }
+  },
   "support": {
     "issues": "https://github.com/dkd/tc_beuser"
   },
   "require": {
-    "php": ">=7.0.0",
-    "typo3/cms-core": ">=8.7,<9.0"
+    "typo3/cms-core": "^10.4"
   },
   "autoload": {
     "psr-4": {
@@ -34,5 +41,8 @@
   "replace": {
     "tc_beuser": "self.version",
     "typo3-ter/tc-beuser": "self.version"
+  },
+  "scripts": {
+    "render-docs": "docker run --rm --name \"t3docsrun-sphinx\" -v $(pwd):/PROJECT:ro -v $(pwd)Documentation-GENERATED-temp:/RESULT  t3docs/render-documentation makehtml -c allow_unsafe 1;"
   }
 }

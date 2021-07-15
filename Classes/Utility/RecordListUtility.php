@@ -1,6 +1,8 @@
 <?php
 namespace Dkd\TcBeuser\Utility;
 
+use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 /***************************************************************
 *  Copyright notice
 *
@@ -26,6 +28,7 @@ namespace Dkd\TcBeuser\Utility;
 
 use TYPO3\CMS\Backend\RecordList\RecordListGetTableHookInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
@@ -37,6 +40,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use UnexpectedValueException;
 
 /**
  * class for listing DB tables in tc_beuser
@@ -81,6 +85,7 @@ class RecordListUtility extends DatabaseRecordList
      * Finishes off with a stopper-gif
      *
      * @return void
+     * @throws Exception
      */
     public function generateList()
     {
@@ -149,10 +154,10 @@ class RecordListUtility extends DatabaseRecordList
      * @param string $table Table name
      * @param int $id Page id
      * @param string $rowList List of fields to show in the listing. Pseudo fields will be added including the record header.
-     * @throws \UnexpectedValueException
      * @return string HTML table with the listing for the record.
+     * @throws Exception
      */
-    public function getTable($table, $id, $rowList = '')
+    public function getTable($table, $id, $rowList = ''): string
     {
         $rowListArray = GeneralUtility::trimExplode(',', $rowList, true);
         // if no columns have been specified, show description (if configured)
@@ -258,8 +263,8 @@ class RecordListUtility extends DatabaseRecordList
         $selectFields = array_unique($selectFields);
         $fieldListFields = $this->makeFieldList($table, 1);
         if (empty($fieldListFields) && $GLOBALS['TYPO3_CONF_VARS']['BE']['debug']) {
-            $message = sprintf($lang->sL('LLL:EXT:lang/Resources/Private/Language/locallang_mod_web_list.xlf:missingTcaColumnsMessage'), $table, $table);
-            $messageTitle = $lang->sL('LLL:EXT:lang/Resources/Private/Language/locallang_mod_web_list.xlf:missingTcaColumnsMessageTitle');
+            $message = sprintf($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_mod_web_list.xlf:missingTcaColumnsMessage'), $table, $table);
+            $messageTitle = $lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_mod_web_list.xlf:missingTcaColumnsMessageTitle');
             /** @var FlashMessage $flashMessage */
             $flashMessage = GeneralUtility::makeInstance(
                 FlashMessage::class,
@@ -270,7 +275,6 @@ class RecordListUtility extends DatabaseRecordList
             );
             /** @var $flashMessageService FlashMessageService */
             $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
-            /** @var $defaultFlashMessageQueue \TYPO3\CMS\Core\Messaging\FlashMessageQueue */
             $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
             $defaultFlashMessageQueue->enqueue($flashMessage);
         }
@@ -281,9 +285,12 @@ class RecordListUtility extends DatabaseRecordList
         $this->selFieldList = $selFieldList;
         if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['getTable'])) {
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['getTable'] as $classData) {
-                $hookObject = GeneralUtility::getUserObj($classData);
+                $hookObject = GeneralUtility::makeInstance($classData);
                 if (!$hookObject instanceof RecordListGetTableHookInterface) {
-                    throw new \UnexpectedValueException($classData . ' must implement interface ' . RecordListGetTableHookInterface::class, 1195114460);
+                    throw new UnexpectedValueException(
+                        $classData . ' must implement interface ' . RecordListGetTableHookInterface::class,
+                        1195114460
+                    );
                 }
                 $hookObject->getDBlistQuery($table, $id, $addWhere, $selFieldList, $this);
             }
@@ -303,7 +310,7 @@ class RecordListUtility extends DatabaseRecordList
             $addWhere = (string) $queryBuilder->expr()->andX(
                 $addWhere,
                 $queryBuilder->expr()->eq('admin', 0),
-                $queryBuilder->expr()->notLike('username', '_cli%')
+                $queryBuilder->expr()->notLike('username', "'_cli%'")
             );
         }
 
@@ -402,8 +409,8 @@ class RecordListUtility extends DatabaseRecordList
                 if (!$this->table) {
                     $href = htmlspecialchars(($this->listURL() . '&collapse[' . $table . ']=' . ($tableCollapsed ? '0' : '1')));
                     $title = $tableCollapsed
-                        ? htmlspecialchars($lang->sL('LLL:EXT:lang/Resources/Private/Language/locallang_core.xlf:labels.expandTable'))
-                        : htmlspecialchars($lang->sL('LLL:EXT:lang/Resources/Private/Language/locallang_core.xlf:labels.collapseTable'));
+                        ? htmlspecialchars($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.expandTable'))
+                        : htmlspecialchars($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.collapseTable'));
                     $icon = '<span class="collapseIcon">' . $this->iconFactory->getIcon(($tableCollapsed ? 'actions-view-list-expand' : 'actions-view-list-collapse'), Icon::SIZE_SMALL)->render() . '</span>';
                     $collapseIcon = '<a href="' . $href . '" title="' . $title . '" class="pull-right t3js-toggle-recordlist" data-table="' . htmlspecialchars($table) . '" data-toggle="collapse" data-target="#recordlist-' . htmlspecialchars($table) . '">' . $icon . '</a>';
                 }
@@ -517,7 +524,7 @@ class RecordListUtility extends DatabaseRecordList
                 // Record navigation is added to the beginning and end of the table if in single
                 // table mode
                 if ($this->table) {
-                    $rowOutput = $this->renderListNavigation('top') . $rowOutput . $this->renderListNavigation('bottom');
+                    $rowOutput = $this->renderListNavigation() . $rowOutput . $this->renderListNavigation('bottom');
                 } else {
                     // Show that there are more records than shown
                     if ($this->totalItems > $this->itemsLimitPerTable) {
@@ -575,12 +582,12 @@ class RecordListUtility extends DatabaseRecordList
      *
      * @param string $table Table name
      * @param int[] $currentIdList Array of the currently displayed uids of the table
-     * @throws \UnexpectedValueException
      * @return string Header table row
+     * @throws RouteNotFoundException
      * @access private
      * @see getTable()
      */
-    public function renderListHeader($table, $currentIdList)
+    public function renderListHeader($table, $currentIdList): string
     {
         $lang = $this->getLanguageService();
         // Init:
@@ -593,7 +600,7 @@ class RecordListUtility extends DatabaseRecordList
             switch ((string)$fCol) {
                 case '_PATH_':
                     // Path
-                    $theData[$fCol] = '<i>[' . htmlspecialchars($lang->sL('LLL:EXT:lang/Resources/Private/Language/locallang_core.xlf:labels._PATH_')) . ']</i>';
+                    $theData[$fCol] = '<i>[' . htmlspecialchars($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels._PATH_')) . ']</i>';
                     break;
                 case '_REF_':
                     // References
@@ -601,7 +608,7 @@ class RecordListUtility extends DatabaseRecordList
                     break;
                 case '_LOCALIZATION_':
                     // Path
-                    $theData[$fCol] = '<i>[' . htmlspecialchars($lang->sL('LLL:EXT:lang/Resources/Private/Language/locallang_core.xlf:labels._LOCALIZATION_')) . ']</i>';
+                    $theData[$fCol] = '<i>[' . htmlspecialchars($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels._LOCALIZATION_')) . ']</i>';
                     break;
                 case '_LOCALIZATION_b':
                     // Path
@@ -634,7 +641,7 @@ class RecordListUtility extends DatabaseRecordList
                         $spriteIcon = $this->iconFactory->getIcon('actions-edit-copy', Icon::SIZE_SMALL)->render();
                         $cells['copyMarked'] = $this->linkClipboardHeaderIcon($spriteIcon, $table, 'setCB', '', $lang->getLL('clip_selectMarked'));
                         // The "edit marked" link:
-                        $editUri = BackendUtility::getModuleUrl('record_edit')
+                        $editUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('record_edit')
                             . '&edit[' . $table . '][{entityIdentifiers:editList}]=edit'
                             . '&returnUrl={T3_THIS_LOCATION}';
                         $cells['edit'] = '<a class="btn btn-default t3js-record-edit-multiple" href="#"'
@@ -666,9 +673,9 @@ class RecordListUtility extends DatabaseRecordList
                     */
                     if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['actions'])) {
                         foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['actions'] as $classData) {
-                            $hookObject = GeneralUtility::getUserObj($classData);
+                            $hookObject = GeneralUtility::makeInstance($classData);
                             if (!$hookObject instanceof RecordListHookInterface) {
-                                throw new \UnexpectedValueException($classData . ' must implement interface ' . RecordListHookInterface::class, 1195567850);
+                                throw new UnexpectedValueException($classData . ' must implement interface ' . RecordListHookInterface::class, 1195567850);
                             }
                             $cells = $hookObject->renderListHeaderActions($table, $currentIdList, $cells, $this);
                         }
@@ -722,9 +729,12 @@ class RecordListUtility extends DatabaseRecordList
          */
         if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['actions'])) {
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['typo3/class.db_list_extra.inc']['actions'] as $classData) {
-                $hookObject = GeneralUtility::getUserObj($classData);
+                $hookObject = GeneralUtility::makeInstance($classData);
                 if (!$hookObject instanceof RecordListHookInterface) {
-                    throw new \UnexpectedValueException($classData . ' must implement interface ' . RecordListHookInterface::class, 1195567855);
+                    throw new UnexpectedValueException(
+                        $classData . ' must implement interface ' . RecordListHookInterface::class,
+                        1195567855
+                    );
                 }
                 $theData = $hookObject->renderListHeader($table, $currentIdList, $theData, $this);
             }
@@ -744,10 +754,11 @@ class RecordListUtility extends DatabaseRecordList
      * @param string $thumbsCol Table field (column) where (possible) thumbnails can be found
      * @param int $indent Indent from left.
      * @return string Table row for the element
+     * @throws RouteNotFoundException
      * @access private
      * @see getTable()
      */
-    public function renderListRow($table, $row, $cc, $titleCol, $thumbsCol, $indent = 0)
+    public function renderListRow($table, $row, $cc, $titleCol, $thumbsCol, $indent = 0): string
     {
         if (!is_array($row)) {
             return '';
@@ -820,7 +831,7 @@ class RecordListUtility extends DatabaseRecordList
                     trim($row[$thumbsCol]) &&
                     preg_match('/(^|(.*(;|,)?))' . $thumbsCol . '(((;|,).*)|$)/', $visibleColumns) === 1
                 ) {
-                    $thumbCode = '<br />' . $this->thumbCode($row, $table, $thumbsCol);
+                    $thumbCode = '<br />' . BackendUtility::thumbCode($row, $table, $thumbsCol);
                     $theData[$fCol] .= $thumbCode;
                     $theData['__label'] .= $thumbCode;
                 }
@@ -836,7 +847,7 @@ class RecordListUtility extends DatabaseRecordList
             } elseif ($fCol === '_PATH_') {
                 $theData[$fCol] = $this->recPath($row['pid']);
             } elseif ($fCol === '_REF_') {
-                $theData[$fCol] = $this->createReferenceHtml($table, $row['uid']);
+                $theData[$fCol] = $this->generateReferenceToolTip($table, $row['uid']);
             } elseif ($fCol === '_CONTROL_') {
                 $theData[$fCol] = $this->makeControl($table, $row);
             } elseif ($fCol === '_CLIPBOARD_') {
@@ -896,7 +907,9 @@ class RecordListUtility extends DatabaseRecordList
             $tagAttributes
         );
 
-        $rowOutput .= $this->addElement(1, $theIcon, $theData, GeneralUtility::implodeAttributes($tagAttributes, true));
+        $rowOutput .= $this->addElement(
+            1, $theIcon, $theData, GeneralUtility::implodeAttributes($tagAttributes, true)
+        );
         // Finally, return table row element:
         return $rowOutput;
     }
@@ -923,7 +936,7 @@ class RecordListUtility extends DatabaseRecordList
     }
 
     /**
-     * modified to point to own module
+     * Modified to point to own module
      * dkd-kartolo
      *
      * Returns a JavaScript string (for an onClick handler) which will load the EditDocumentController script that shows the form for editing of the record(s) you have send as params.
@@ -934,6 +947,7 @@ class RecordListUtility extends DatabaseRecordList
      * @param string $requestUri An optional returnUrl you can set - automatically set to REQUEST_URI.
      *
      * @return string
+     * @throws RouteNotFoundException
      */
     public static function editOnClick($params, $_ = '', $requestUri = '')
     {
@@ -942,7 +956,7 @@ class RecordListUtility extends DatabaseRecordList
         } else {
             $returnUrl = GeneralUtility::quoteJSvalue(rawurlencode($requestUri ?: GeneralUtility::getIndpEnv('REQUEST_URI')));
         }
-        return 'window.location.href=' . GeneralUtility::quoteJSvalue(BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . $params . '&returnUrl=') . '+' . $returnUrl . '; return false;';
+        return 'window.location.href=' . GeneralUtility::quoteJSvalue(GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute($GLOBALS['MCONF']['name']) . $params . '&returnUrl=') . '+' . $returnUrl . '; return false;';
     }
 
     /**
@@ -950,10 +964,10 @@ class RecordListUtility extends DatabaseRecordList
      *
      * @param string $table The table
      * @param mixed[] $row The record for which to make the control panel.
-     * @throws \UnexpectedValueException
      * @return string HTML table with the control panel (unless disabled)
+     * @throws RouteNotFoundException
      */
-    public function makeControl($table, $row)
+    public function makeControl($table, $row): string
     {
         if ($this->dontShowClipControlPanels) {
             return '';
@@ -983,7 +997,7 @@ class RecordListUtility extends DatabaseRecordList
                     $iconIdentifier = 'actions-page-open';
                 }
                 $overlayIdentifier = !$this->isEditable($table) ? 'overlay-readonly' : null;
-                $editAction = '<a class="btn btn-default" href="#" onclick="' . htmlspecialchars(BackendUtility::editOnClick($params, '', -1))
+                $editAction = '<a class="btn btn-default" href="#" onclick="' . htmlspecialchars(self::editOnClick($params, '', -1))
                     . '" title="' . htmlspecialchars($this->getLanguageService()->getLL('edit')) . '">' . $this->iconFactory->getIcon($iconIdentifier, Icon::SIZE_SMALL, $overlayIdentifier)->render() . '</a>';
             } else {
                 $editAction = $this->spaceIcon;
@@ -992,10 +1006,10 @@ class RecordListUtility extends DatabaseRecordList
         }
 
 
-            //dkd-kartolo
-            //show magnifier (mod4)
+        //dkd-kartolo
+        //show magnifier (mod4)
         if (!$this->disableControls['detail']) {
-            $infoAction = '<a href="#" class="btn btn-default" onclick="javascript:top.goToModule(\'tcTools_Overview\', 1, \'&' .
+            $infoAction = '<a href="#" class="btn btn-default" onclick="top.goToModule(\'tcTools_Overview\', 1, \'&' .
                 $this->analyzeParam . '=' . $row['uid'] . '\')"' .
                 ' title="' . $this->analyzeLabel . '">' .
                 $this->iconFactory->getIcon('apps-toolbar-menu-search', Icon::SIZE_SMALL)->render() .
@@ -1010,16 +1024,18 @@ class RecordListUtility extends DatabaseRecordList
             $params = '&SET[function]=import&feID=' . $row['uid'];
             $importAction = '<a href="#" class="btn btn-default" onclick="' .
                 htmlspecialchars(self::editOnClick($params)) .
-                '" title="' . $this->getLanguageService()->getLL('import', 1) .'">' .
+                '" title="' . $this->getLanguageService()->getLL('import') .'">' .
                 $this->iconFactory->getIcon('actions-document-import-t3d', Icon::SIZE_SMALL)->render() .
                 '</a>';
             $this->addActionToCellGroup($cells, $importAction, 'import');
         }
 
         // "Info": (All records)
-        $onClick = 'top.launchView(' . GeneralUtility::quoteJSvalue($table) . ', ' . (int)$row['uid'] . '); return false;';
-        $viewBigAction = '<a class="btn btn-default" href="#" onclick="' . htmlspecialchars($onClick) . '" title="' . htmlspecialchars($this->getLanguageService()->getLL('showInfo')) . '">'
-            . $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render() . '</a>';
+        $viewBigAction = '<a class="btn btn-default" href="#" data-dispatch-action="TYPO3.InfoWindow.showItem"' .
+            ' data-dispatch-args-list="' . $table . ',' . (int)$row['uid'] . '" title="' .
+            htmlspecialchars($this->getLanguageService()->getLL('showInfo')) . '">' .
+            $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render() . '</a>';
+
         $this->addActionToCellGroup($cells, $viewBigAction, 'viewBig');
 
             // "Hide/Unhide" links:
@@ -1036,19 +1052,19 @@ class RecordListUtility extends DatabaseRecordList
                     $hideTitle = htmlspecialchars($this->getLanguageService()->getLL('hide' . ($table === 'pages' ? 'Page' : '')));
                     $unhideTitle = htmlspecialchars($this->getLanguageService()->getLL('unHide' . ($table === 'pages' ? 'Page' : '')));
                     if ($row[$hiddenField]) {
-                        $params = 'data[' . $table . '][' . $rowUid . '][' . $hiddenField . ']=0';
-                        $hideAction = '<a class="btn btn-default t3js-record-hide" data-state="hidden" href="#"'
-                                      . ' data-params="' . htmlspecialchars($params) . '"'
-                                      . ' title="' . $unhideTitle . '"'
-                                      . ' data-toggle-title="' . $hideTitle . '">'
-                                      . $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render() . '</a>';
+                        $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
+                        $hideAction = '<a href="#" class="btn btn-default" ' .
+                            ' title="' . $unhideTitle . '" ' .
+                            'onclick="' . htmlspecialchars('return jumpToUrl(\'' . self::actionOnClick($params) . '\');') . '">' .
+                            $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render() .
+                            '</a>';
                     } else {
-                        $params = 'data[' . $table . '][' . $rowUid . '][' . $hiddenField . ']=1';
-                        $hideAction = '<a class="btn btn-default t3js-record-hide" data-state="visible" href="#"'
-                                      . ' data-params="' . htmlspecialchars($params) . '"'
-                                      . ' title="' . $hideTitle . '"'
-                                      . ' data-toggle-title="' . $unhideTitle . '">'
-                                      . $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render() . '</a>';
+                        $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
+                        $hideAction = '<a href="#" class="btn btn-default" ' .
+                            'title="' . $hideTitle . '" ' .
+                            'onclick=" ' . htmlspecialchars('return jumpToUrl(\'' . self::actionOnClick($params) . '\');') . '">' .
+                            $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render() .
+                            '</a>';
                     }
                 }
                 $this->addActionToCellGroup($cells, $hideAction, 'hide');
@@ -1067,29 +1083,31 @@ class RecordListUtility extends DatabaseRecordList
                     $refCountMsg = BackendUtility::referenceCount(
                         $table,
                         $row['uid'],
-                        ' ' . $this->getLanguageService()->sL('LLL:EXT:lang/Resources/Private/Language/locallang_core.xlf:labels.referencesToRecord'),
+                        ' ' . $this->getLanguageService()
+                            ->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.referencesToRecord'),
                         $this->getReferenceCount($table, $row['uid'])
                     ) . BackendUtility::translationCount(
                             $table,
                             $row['uid'],
-                        ' ' . $this->getLanguageService()->sL('LLL:EXT:lang/Resources/Private/Language/locallang_core.xlf:labels.translationsOfRecord')
+                        ' ' . $this->getLanguageService()
+                            ->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.translationsOfRecord')
                     );
                 }
 
                 if ($this->isRecordCurrentBackendUser($table, $row)) {
                     $deleteAction = $this->spaceIcon;
                 } else {
-                    $title = BackendUtility::getRecordTitle($table, $row);
+                    $titleOrig = BackendUtility::getRecordTitle($table, $row, false, true);
+                    $title = $this->slashJS(GeneralUtility::fixed_lgd_cs($titleOrig, $this->fixedL), true);
                     $warningText = $this->getLanguageService()->getLL($actionName . 'Warning') . ' "' . $title . '" ' . '[' . $table . ':' . $row['uid'] . ']' . $refCountMsg;
+                    $linkTitle = $this->getLanguageService()->getLL($actionName);
 
-                    $params = 'cmd[' . $table . '][' . $row['uid'] . '][delete]=1';
-                    $icon = $this->iconFactory->getIcon('actions-edit-' . $actionName, Icon::SIZE_SMALL)->render();
-                    $linkTitle = htmlspecialchars($this->getLanguageService()->getLL($actionName));
-                    $deleteAction = '<a class="btn btn-default t3js-record-delete" href="#" '
-                                    . ' data-l10parent="' . htmlspecialchars($row['l10n_parent']) . '"'
-                                    . ' data-params="' . htmlspecialchars($params) . '" data-title="' . htmlspecialchars($title) . '"'
-                                    . ' data-message="' . htmlspecialchars($warningText) . '" title="' . $linkTitle . '"'
-                                    . '>' . $icon . '</a>';
+                    $params = '&cmd[' . $table . '][' . $row['uid'] . '][delete]=1&SET[function]=action';
+                    $deleteAction = '<a href="#" class="btn btn-default"' .
+                        ' title="' . $linkTitle . '"' .
+                        ' onclick="' . htmlspecialchars('if (confirm(' . GeneralUtility::quoteJSvalue($warningText) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
+                        $this->iconFactory->getIcon('actions-edit-' . $actionName, Icon::SIZE_SMALL)->render() .
+                        '</a>';
                 }
             } else {
                 $deleteAction = $this->spaceIcon;
@@ -1097,7 +1115,6 @@ class RecordListUtility extends DatabaseRecordList
             $this->addActionToCellGroup($cells, $deleteAction, 'delete');
         }
 
-        //TODO: only for admins or authorized user
         // swith user / switch user back
         if ($table == 'be_users') {
             if (!$row[$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']] && ($this->getBackendUserAuthentication()->user['tc_beuser_switch_to'] || $this->getBackendUserAuthentication()->isAdmin())) {
@@ -1141,8 +1158,37 @@ class RecordListUtility extends DatabaseRecordList
      * @param string $table
      * @return QueryBuilder
      */
-    protected function getQueryBuilderForTable($table)
+    protected function getQueryBuilderForTable(string $table): QueryBuilder
     {
         return GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+    }
+
+    private function getModule()
+    {
+        return $GLOBALS['SOBE'];
+    }
+
+    private static function slashJS($string, $extended = false, $char = '\'')
+    {
+        if ($extended) {
+            $string = str_replace('\\', '\\\\', $string);
+        }
+        return str_replace($char, '\\' . $char, $string);
+    }
+
+    /**
+     * create link for the hide/unhide and delete icon.
+     * not using tce_db.php, because we need to manipulate user's permission
+     *
+     * @param string $params param with command (hide/unhide, delete) and records id
+     * @param string $requestURI redirect link, after process the command
+     * @return string jumpTo URL link with redirect
+     */
+    public function actionOnClick($params, $requestURI = '')
+    {
+        $redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
+            '&prErr=1&uPT=1';
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
+        return $uriBuilder->buildUriFromRoute($GLOBALS['MCONF']['name']) . $params . $redirect;
     }
 }
